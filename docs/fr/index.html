@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Documentation Phlogger : API de logging fluide pour PHP 8.5, valeurs différées, contexte structuré, intégration PSR-3 et limitation des logs.">
+  <meta name="description" content="Documentation Phlogger : API de logging fluide pour PHP 8.3+, valeurs différées, contexte structuré, intégration PSR-3 et limitation des logs.">
   <title>Phlogger — Documentation en français</title>
   <link rel="stylesheet" href="../assets/style.css">
   <link rel="alternate" hreflang="en" href="../en/index.html">
@@ -32,8 +32,8 @@
     <main id="main">
       <p class="eyebrow" lang="en">A Fluent Logging API for PHP</p>
       <h1>Des logs qui expriment votre intention.</h1>
-      <p class="lead">Choisissez un niveau, ajoutez du contexte structuré et décidez quand écrire. Phlogger fournit une API de logging fluide pour PHP 8.5 et le logger PSR-3 que vous utilisez déjà.</p>
-      <div class="badges"><span class="badge">PHP 8.5+</span><span class="badge">Seule dépendance d'exécution : psr/log</span><span class="badge">Builders immuables</span></div>
+      <p class="lead">Choisissez un niveau, ajoutez du contexte structuré et décidez quand écrire. Phlogger fournit une API de logging fluide pour PHP 8.3+ et le logger PSR-3 que vous utilisez déjà.</p>
+      <div class="badges"><span class="badge">PHP 8.3+</span><span class="badge">Seule dépendance d'exécution : psr/log</span><span class="badge">Builders immuables</span></div>
       <pre><code>use Phlogger\FluentLogger;
 use Phlogger\Level;
 
@@ -46,7 +46,7 @@ $logger-&gt;atWarning()
 
       <section id="installation">
         <h2>Installation</h2>
-        <p>Phlogger nécessite PHP 8.5 ou une version ultérieure. Sa seule dépendance d'exécution est <code>psr/log</code>. Fournissez un backend PSR-3 : le logger de votre application, un logger de test ou <code>Psr\Log\NullLogger</code>.</p>
+        <p>Phlogger nécessite PHP 8.3 ou une version ultérieure. Sa seule dépendance d'exécution est <code>psr/log</code>. Fournissez un backend PSR-3 : le logger de votre application, un logger de test ou <code>Psr\Log\NullLogger</code>.</p>
         <p>Installez Phlogger depuis <a href="https://packagist.org/packages/roukmoute/phlogger">Packagist</a> avec Composer :</p>
         <pre><code>composer require roukmoute/phlogger</code></pre>
         <p>Phlogger fournit l'API de logging. Le backend fourni assure le stockage, la mise en forme et le transport.</p>

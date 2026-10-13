@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Phlogger documentation: fluent PHP 8.5 logging, lazy values, structured context, PSR-3 integration and rate limiting.">
+  <meta name="description" content="Phlogger documentation: fluent PHP 8.3+ logging, lazy values, structured context, PSR-3 integration and rate limiting.">
   <title>Phlogger — Documentation</title>
   <link rel="stylesheet" href="../assets/style.css">
   <link rel="alternate" hreflang="fr" href="../fr/index.html">
@@ -32,8 +32,8 @@
     <main id="main">
       <p class="eyebrow">A Fluent Logging API for PHP</p>
       <h1>Logging that reads like an intention.</h1>
-      <p class="lead">Select a level, attach structured context and decide when to emit a record. Phlogger provides a fluent logging API for PHP 8.5 and the PSR-3 logger you already use.</p>
-      <div class="badges"><span class="badge">PHP 8.5+</span><span class="badge">Only runtime package: psr/log</span><span class="badge">Immutable fluent builders</span></div>
+      <p class="lead">Select a level, attach structured context and decide when to emit a record. Phlogger provides a fluent logging API for PHP 8.3+ and the PSR-3 logger you already use.</p>
+      <div class="badges"><span class="badge">PHP 8.3+</span><span class="badge">Only runtime package: psr/log</span><span class="badge">Immutable fluent builders</span></div>
       <pre><code>use Phlogger\FluentLogger;
 use Phlogger\Level;
 
@@ -46,7 +46,7 @@ $logger-&gt;atWarning()
 
       <section id="installation">
         <h2>Installation</h2>
-        <p>Phlogger targets PHP 8.5 and later. Its only runtime package dependency is <code>psr/log</code>. Supply any PSR-3 backend: your application's logger, a test logger, or <code>Psr\Log\NullLogger</code>.</p>
+        <p>Phlogger targets PHP 8.3 and later. Its only runtime package dependency is <code>psr/log</code>. Supply any PSR-3 backend: your application's logger, a test logger, or <code>Psr\Log\NullLogger</code>.</p>
         <p>Install Phlogger from <a href="https://packagist.org/packages/roukmoute/phlogger">Packagist</a> with Composer:</p>
         <pre><code>composer require roukmoute/phlogger</code></pre>
         <p>Phlogger is the logging API; the supplied backend handles storage, formatting and transport.</p>
