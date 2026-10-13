@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4 — 2026-10-13
+
+- Lower the minimum supported PHP version to 8.3 without changing the public API or runtime source code.
+- Run quality and production-only CI checks on PHP 8.3, 8.4 and 8.5.
+- Target PHP 8.3 in static analysis and update the English Markdown documentation and bilingual website requirements.
+
+`psr/log` remains the only production package dependency.
+
 ## 0.1.3 — 2026-10-13
 
 - Publish `roukmoute/phlogger` on Packagist with automatic GitHub updates.
