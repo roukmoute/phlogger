@@ -86,6 +86,16 @@ $logger->atWarning()
 
 The optional filter consults Monolog's complete handler pipeline before Phlogger evaluates lazy messages or context. It follows later handler changes and avoids deferred work at disabled levels. Phlogger's own `minimumLevel` can further restrict those levels. `isHandling()` estimates level acceptance; buffering, routing and other handler policies can still affect delivery. Consult the backend pipeline rather than copying the threshold of a final file handler: `FingersCrossedHandler`, for example, can retain debug records until an error triggers a flush.
 
+To record the application's calling file and line, configure Monolog's `IntrospectionProcessor` to skip Phlogger's wrapper frames:
+
+```php
+$backend->pushProcessor(new Monolog\Processor\IntrospectionProcessor(
+    skipClassesPartials: ['Phlogger\\', 'Psr\\Log\\'],
+));
+```
+
+Also skipping `Psr\Log\` handles inherited methods such as `info()`. Attach the processor to the **logger**, before handlers buffer records. Attaching it to a handler behind `FingersCrossedHandler` records the flush location instead of the original call. The [introspection example](examples/monolog-introspection.php) and integration tests cover distinct call sites, including buffered delivery.
+
 In this repository, Monolog is a **development dependency only**, used by the executable [Monolog example](examples/monolog.php) and the [integration tests](tests/Integration/MonologIntegrationTest.php). Phlogger's production package dependency remains `psr/log` alone. To run the example from a checkout:
 
 ```sh

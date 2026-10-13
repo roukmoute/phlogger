@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Phlogger\Tests\Integration;
 
+use Application\MonologCaller;
 use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\FingersCrossedHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\TestHandler;
 use Monolog\Level as MonologLevel;
 use Monolog\Logger;
+use Monolog\Processor\IntrospectionProcessor;
 use Monolog\Processor\PsrLogMessageProcessor;
 use Phlogger\FluentLogger;
 use Phlogger\LazyValue;
@@ -84,6 +86,84 @@ final class MonologIntegrationTest extends TestCase
         self::assertCount(1, $records);
         self::assertSame('Hello {user}', $records[0]->message);
         self::assertSame(['user' => 'Ada'], $records[0]->context);
+    }
+
+    public function testIntrospectionProcessorRecordsTheApplicationCallSiteForFluentAndFormattedLogs(): void
+    {
+        $handler = new TestHandler();
+        $backend = new Logger('integration', [$handler]);
+        $backend->pushProcessor(new IntrospectionProcessor(skipClassesPartials: ['Phlogger\\']));
+        $application = new MonologCaller(new FluentLogger($backend));
+
+        $infoLine = $application->logInfo();
+        $formattedLine = $application->logFormattedInfo();
+
+        $records = $handler->getRecords();
+        self::assertCount(2, $records);
+        self::assertSame('application info', $records[0]->message);
+        self::assertSame('Order 42 created', $records[1]->message);
+        self::assertSame([
+            'file' => __FILE__,
+            'line' => $infoLine,
+            'class' => MonologCaller::class,
+            'callType' => '->',
+            'function' => 'logInfo',
+        ], $records[0]->extra);
+        self::assertSame([
+            'file' => __FILE__,
+            'line' => $formattedLine,
+            'class' => MonologCaller::class,
+            'callType' => '->',
+            'function' => 'logFormattedInfo',
+        ], $records[1]->extra);
+    }
+
+    public function testLoggerStageIntrospectionPreservesEachCallSiteBeforeBuffering(): void
+    {
+        $handler = new TestHandler();
+        $backend = new Logger('integration', [new FingersCrossedHandler($handler, MonologLevel::Error)]);
+        $backend->pushProcessor(new IntrospectionProcessor(skipClassesPartials: ['Phlogger\\']));
+        $application = new MonologCaller(new FluentLogger($backend));
+
+        $infoLine = $application->logInfo();
+        self::assertSame([], $handler->getRecords());
+
+        $errorLine = $application->logError();
+
+        $records = $handler->getRecords();
+        self::assertCount(2, $records);
+        self::assertSame(MonologLevel::Info, $records[0]->level);
+        self::assertSame(MonologLevel::Error, $records[1]->level);
+        self::assertSame(__FILE__, $records[0]->extra['file']);
+        self::assertSame(__FILE__, $records[1]->extra['file']);
+        self::assertSame($infoLine, $records[0]->extra['line']);
+        self::assertSame($errorLine, $records[1]->extra['line']);
+        self::assertNotSame($records[0]->extra['line'], $records[1]->extra['line']);
+        self::assertSame(MonologCaller::class, $records[0]->extra['class']);
+        self::assertSame(MonologCaller::class, $records[1]->extra['class']);
+        self::assertSame('logInfo', $records[0]->extra['function']);
+        self::assertSame('logError', $records[1]->extra['function']);
+    }
+
+    public function testIntrospectionProcessorSkipsPsrFramesForInheritedStandardMethods(): void
+    {
+        $handler = new TestHandler();
+        $backend = new Logger('integration', [$handler]);
+        $backend->pushProcessor(new IntrospectionProcessor(skipClassesPartials: ['Phlogger\\', 'Psr\\Log\\']));
+        $application = new MonologCaller(new FluentLogger($backend));
+
+        $line = $application->logStandardInfo();
+
+        $records = $handler->getRecords();
+        self::assertCount(1, $records);
+        self::assertSame('standard PSR info', $records[0]->message);
+        self::assertSame([
+            'file' => __FILE__,
+            'line' => $line,
+            'class' => MonologCaller::class,
+            'callType' => '->',
+            'function' => 'logStandardInfo',
+        ], $records[0]->extra);
     }
 
     public function testBackendFilterSkipsLazyWorkAndTracksHandlerChanges(): void
@@ -216,5 +296,49 @@ final class MonologIntegrationTest extends TestCase
                 fclose($stream);
             }
         }
+    }
+}
+
+// Keep application frames outside Phlogger's namespace so the processor can find them.
+namespace Application;
+
+use Phlogger\FluentLogger;
+
+final class MonologCaller
+{
+    public function __construct(private readonly FluentLogger $logger)
+    {
+    }
+
+    public function logInfo(): int
+    {
+        $line = __LINE__ + 1;
+        $this->logger->atInfo()->with('request_id', 'demo')->log('application info');
+
+        return $line;
+    }
+
+    public function logFormattedInfo(): int
+    {
+        $line = __LINE__ + 1;
+        $this->logger->atInfo()->logf('Order %d created', 42);
+
+        return $line;
+    }
+
+    public function logError(): int
+    {
+        $line = __LINE__ + 1;
+        $this->logger->atError()->log('application error');
+
+        return $line;
+    }
+
+    public function logStandardInfo(): int
+    {
+        $line = __LINE__ + 1;
+        $this->logger->info('standard PSR info');
+
+        return $line;
     }
 }

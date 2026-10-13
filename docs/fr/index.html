@@ -227,6 +227,12 @@ $requestLogger-&gt;atDebug()
 
 // $debugEvaluations remains 0.</code></pre>
         <div class="note"><p><strong>Vérifiez le pipeline complet.</strong> <code>isHandling()</code> estime si un handler accepte un niveau ; cette méthode ne garantit pas la livraison. Les handlers de buffering ou de routage peuvent prendre des décisions supplémentaires ensuite. Utilisez la vérification du logger configuré plutôt que de recopier le seuil du handler de fichier final : un handler extérieur peut volontairement recueillir les niveaux plus détaillés. Le <code>minimumLevel</code> de Phlogger peut restreindre davantage ce pipeline.</p></div>
+        <h3>Retrouver la ligne d'appel dans l'application</h3>
+        <p>Configurez le processor d'introspection de Monolog pour ignorer les appels internes de Phlogger et les méthodes PSR héritées comme <code>info()</code>. Attachez-le au logger pour qu'il s'exécute avant les handlers de buffering ; un processor placé derrière <code>FingersCrossedHandler</code> voit la ligne de vidage du buffer plutôt que l'appel d'origine.</p>
+        <pre><code>$backend-&gt;pushProcessor(new Monolog\Processor\IntrospectionProcessor(
+    skipClassesPartials: ['Phlogger\\', 'Psr\\Log\\'],
+));</code></pre>
+        <p>L'<a href="https://github.com/roukmoute/phlogger/blob/master/examples/monolog-introspection.php">exemple d'introspection</a> conserve le fichier et la ligne de chaque appel dans l'application, même lorsque les enregistrements sont mis en attente.</p>
         <h3>Exécuter l'exemple complet</h3>
         <p>Le dépôt contient <a href="https://github.com/roukmoute/phlogger/blob/master/examples/monolog.php">un exemple Monolog exécutable</a>. Dans un clone de développement, <code>composer install</code> installe Monolog comme dépendance de développement pour les exemples et tests d'intégration :</p>
         <pre><code>composer install

@@ -227,6 +227,12 @@ $requestLogger-&gt;atDebug()
 
 // $debugEvaluations remains 0.</code></pre>
         <div class="note"><p><strong>Check the complete pipeline.</strong> <code>isHandling()</code> estimates whether a handler accepts a level; it does not guarantee delivery. Buffering or routing handlers can make additional decisions later. Use the configured logger's check rather than copying a final file handler's threshold: an outer handler may intentionally collect lower-level records. Phlogger's <code>minimumLevel</code> can restrict the pipeline further.</p></div>
+        <h3>Record the application call site</h3>
+        <p>Configure Monolog's introspection processor to skip Phlogger's wrapper frames and the inherited PSR methods such as <code>info()</code>. Attach it to the logger so it runs before buffering handlers; a processor behind <code>FingersCrossedHandler</code> sees the flush location instead of the original call.</p>
+        <pre><code>$backend-&gt;pushProcessor(new Monolog\Processor\IntrospectionProcessor(
+    skipClassesPartials: ['Phlogger\\', 'Psr\\Log\\'],
+));</code></pre>
+        <p>The <a href="https://github.com/roukmoute/phlogger/blob/master/examples/monolog-introspection.php">introspection example</a> records distinct application file and line information even when records are buffered.</p>
         <h3>Run the complete example</h3>
         <p>The repository includes <a href="https://github.com/roukmoute/phlogger/blob/master/examples/monolog.php">an executable Monolog example</a>. In a development checkout, <code>composer install</code> installs Monolog as a development dependency for examples and integration tests:</p>
         <pre><code>composer install
