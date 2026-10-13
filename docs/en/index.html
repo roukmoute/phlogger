@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Phlogger documentation: fluent PHP 8.5 logging, lazy values, structured context, PSR-3 integration and rate limiting.">
+  <title>Phlogger — Documentation</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="alternate" hreflang="fr" href="../fr/index.html">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">ph</span>logger</a>
+    <nav class="toplinks" aria-label="Project and language">
+      <a href="https://github.com/roukmoute/phlogger">GitHub</a>
+      <div class="languages"><span aria-current="page">EN</span><a href="../fr/index.html" hreflang="fr" lang="fr">FR</a></div>
+    </nav>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar"><nav aria-label="On this page"><p>Documentation</p><ul>
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#quick-start">Quick start</a></li>
+      <li><a href="#context">Context and exceptions</a></li>
+      <li><a href="#lazy">Lazy logging</a></li>
+      <li><a href="#filtering">Filtering and conditions</a></li>
+      <li><a href="#rate-limits">Rate limiting</a></li>
+      <li><a href="#psr">PSR-3 integration</a></li>
+      <li><a href="#reference">API reference</a></li>
+    </ul></nav></aside>
+    <main id="main">
+      <p class="eyebrow">A Fluent Logging API for PHP</p>
+      <h1>Logging that reads like an intention.</h1>
+      <p class="lead">Select a level, attach structured context and decide when to emit a record. Phlogger brings the fluent approach of Google Flogger to modern PHP and the PSR-3 logger you already use.</p>
+      <div class="badges"><span class="badge">PHP 8.5+</span><span class="badge">Only runtime package: psr/log</span><span class="badge">Immutable fluent builders</span></div>
+      <pre><code>use Phlogger\FluentLogger;
+use Phlogger\Level;
+
+$logger = new FluentLogger($psrBackend, minimumLevel: Level::Info);
+
+$logger-&gt;atWarning()
+    -&gt;withCause($exception)
+    -&gt;atMostEvery(30)
+    -&gt;log('Payment failed for order {id}', ['id' =&gt; $orderId]);</code></pre>
+
+      <section id="installation">
+        <h2>Installation</h2>
+        <p>Phlogger targets PHP 8.5 and later. Its only runtime package dependency is <code>psr/log</code>. Supply any PSR-3 backend: your application's logger, a test logger, or <code>Psr\Log\NullLogger</code>.</p>
+        <p>Install the tagged release directly from GitHub using Composer's VCS repository support:</p>
+        <pre><code>composer config repositories.phlogger vcs https://github.com/roukmoute/phlogger
+composer require "roukmoute/phlogger:^0.1"</code></pre>
+        <p>Phlogger is the logging API; the supplied backend handles storage, formatting and transport.</p>
+      </section>
+
+      <section id="quick-start">
+        <h2>Quick start</h2>
+        <p>Each <code>at*()</code> method starts a fluent record. Call <code>log()</code> to emit it. All eight PSR-3 levels are available: debug, info, notice, warning, error, critical, alert and emergency.</p>
+        <pre><code>$logger-&gt;atInfo()
+    -&gt;with('user_id', $userId)
+    -&gt;log('User {user_id} signed in');
+
+$logger-&gt;at(Level::Notice)
+    -&gt;withContext(['job' =&gt; 'daily-report', 'rows' =&gt; 120])
+    -&gt;log('Report generated');
+
+$logger-&gt;atError()
+    -&gt;withCause($exception)
+    -&gt;log('Report generation failed');</code></pre>
+        <p><code>log()</code> passes the message template and context to the backend. Placeholder interpolation belongs to the backend. Use <code>logf()</code> when you explicitly want PHP <code>sprintf()</code> formatting.</p>
+        <pre><code>$logger-&gt;atInfo()-&gt;logf('Processed %d rows in %.2f seconds', $rows, $seconds);</code></pre>
+      </section>
+
+      <section id="context">
+        <h2>Context and exceptions</h2>
+        <p>Use <code>with()</code> for one value and <code>withContext()</code> for a group. Logger context, fluent context and terminal context merge in that order; the most specific value wins.</p>
+        <pre><code>$requestLogger = $logger-&gt;withContext([
+    'request_id' =&gt; $requestId,
+    'component' =&gt; 'http',
+]);
+
+$requestLogger-&gt;atInfo()
+    -&gt;with('component', 'checkout')
+    -&gt;log('Checkout started', ['component' =&gt; 'payment']);
+// The backend receives component=payment and request_id=$requestId.</code></pre>
+        <p>The logger and fluent builders are immutable. Adding context returns a new value, so the original logger retains its defaults. Contextual logger clones share the same rate-limit store.</p>
+        <p><code>withCause($throwable)</code> stores the throwable under the PSR-3 <code>exception</code> key. It accepts both exceptions and PHP errors. <code>withCause(null)</code> sets that key to null, clearing an earlier cause. Context passed to the terminal <code>log()</code> call can override that key.</p>
+        <p>Arrays, objects, nulls and plain closures remain structured context. Phlogger does not stringify arbitrary values or run ordinary closures supplied as context.</p>
+      </section>
+
+      <section id="lazy">
+        <h2>Lazy logging</h2>
+        <p>Wrap an expensive context value or formatting argument with <code>LazyValue::of()</code>. You can also pass a closure as the message. Deferred work runs only after Phlogger admits the record through its level filter, conditions and rate limits.</p>
+        <pre><code>use Phlogger\LazyValue;
+
+$logger-&gt;atDebug()
+    -&gt;with('summary', LazyValue::of(fn () =&gt; calculateSummary()))
+    -&gt;log('Summary: {summary}');
+
+$logger-&gt;atDebug()
+    -&gt;log(fn () =&gt; buildDiagnosticMessage());
+
+$logger-&gt;atInfo()
+    -&gt;every(100)
+    -&gt;logf('Queue size: %d', LazyValue::of(fn () =&gt; countQueue()));</code></pre>
+        <p>A lazy wrapper is evaluated once per record and its result is passed to the backend. Resolution applies to top-level context values; wrappers nested inside arrays or objects are not traversed. An ordinary closure in context remains an ordinary closure.</p>
+        <div class="note"><p><strong>The backend may still filter a record.</strong> PSR-3 has no API for checking a backend's enabled levels. Configure Phlogger's <code>minimumLevel</code> or <code>filter</code> to avoid deferred work at levels your application disables.</p></div>
+        <p>Keep deferred callbacks free of application side effects. Exceptions from callbacks and from the backend propagate to the caller.</p>
+      </section>
+
+      <section id="filtering">
+        <h2>Filtering and conditions</h2>
+        <p>The minimum level defaults to <code>Level::Debug</code>. Raise it to exclude more verbose records. An optional filter closure receives the selected <code>Level</code> and returns a boolean; it further restricts logging.</p>
+        <pre><code>$logger = new FluentLogger(
+    $psrBackend,
+    minimumLevel: Level::Info,
+    filter: fn (Level $level): bool =&gt; $level !== Level::Notice,
+);
+
+$logger-&gt;atWarning()
+    -&gt;when(fn () =&gt; $queue-&gt;isOverloaded())
+    -&gt;log('Queue is overloaded');
+
+$logger-&gt;atInfo()
+    -&gt;when($shouldAudit)
+    -&gt;log('Audit event recorded');</code></pre>
+        <p>Repeated <code>when()</code> conditions must all allow the record. Use <code>isEnabled()</code> to check level eligibility before separately doing expensive work; it does not consume rate-limit state or predict whether conditions and limits will admit the record.</p>
+        <pre><code>if ($logger-&gt;atDebug()-&gt;isEnabled()) {
+    // Prefer LazyValue for work belonging to a single record.
+}</code></pre>
+      </section>
+
+      <section id="rate-limits">
+        <h2>Rate limiting</h2>
+        <p>Control repetitive logging at the call site. Rate limits run before deferred message and context evaluation.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th scope="col">Method</th><th scope="col">Behavior</th></tr></thead>
+          <tbody>
+            <tr><td><code>every(3)</code></td><td>Admit the first call, then calls 4, 7, 10 and so on. <code>every(1)</code> has no effect.</td></tr>
+            <tr><td><code>first(5)</code></td><td>Admit only the first five eligible records for this site and policy. <code>first(0)</code> suppresses all records.</td></tr>
+            <tr><td><code>atMostEvery(30)</code></td><td>Admit the first call, then require at least 30 seconds since the last admitted call. Zero disables this time limit.</td></tr>
+          </tbody>
+        </table></div>
+        <pre><code>$logger-&gt;atWarning()
+    -&gt;atMostEvery(30)
+    -&gt;log('Remote service is unavailable');
+
+$logger-&gt;atDebug()
+    -&gt;first(5)
+    -&gt;log('Initial sample', ['sample' =&gt; $sample]);</code></pre>
+        <p>With several limits in a chain, every limit must allow the call. Interval counters and the time window reset together after admission. Records rejected by a level filter or condition do not consume quota.</p>
+        <p><code>every()</code> requires a positive count; <code>first()</code> accepts zero or a positive count. <code>atMostEvery()</code> requires finite, non-negative seconds. Repeating the same limit method replaces that method's previous value.</p>
+        <h3>Call sites and explicit keys</h3>
+        <p>By default, state is identified by the terminal call's file and line, level and rate-limit policy, within the logger family. Different lines are independent. Two calls on one line with the same level and policy share state.</p>
+        <p>Use <code>withRateLimitKey()</code> to select a stable key, particularly in logging helpers. A key shares state only when the level and policy also match.</p>
+        <pre><code>$logger-&gt;atWarning()
+    -&gt;withRateLimitKey('payment-provider-unavailable')
+    -&gt;atMostEvery(30)
+    -&gt;log('Payment provider unavailable');</code></pre>
+        <h3>Lifetime and memory</h3>
+        <p>State is local to the logger family and the current PHP process. Contextual clones share it; separately constructed loggers and separate workers do not. These limits do not coordinate PHP-FPM workers or application instances.</p>
+        <p>The default store holds up to 1,024 rate-limit entries. Set <code>rateLimitCapacity</code> in the constructor to change it. The least recently used entry is evicted when the store fills; returning to an evicted key starts its quota again. Prefer stable keys over identifiers drawn from an unlimited set.</p>
+        <p>Time limits use a monotonic clock. An optional constructor <code>clock</code> closure returning seconds allows deterministic tests. Call <code>resetRateLimits()</code> to clear the shared store.</p>
+        <div class="note"><p><strong>Admission consumes quota.</strong> A record admitted by Phlogger consumes its limit even if a deferred callback throws or the backend fails or declines to write it. Phlogger cannot confirm delivery through PSR-3.</p></div>
+      </section>
+
+      <section id="psr">
+        <h2>PSR-3 integration</h2>
+        <p><code>FluentLogger</code> implements <code>Psr\Log\LoggerInterface</code>. Pass it to libraries expecting a PSR-3 logger, or use its normal level methods alongside fluent calls.</p>
+        <pre><code>use Psr\Log\LoggerInterface;
+
+function reportFailure(LoggerInterface $logger, Throwable $error): void
+{
+    $logger-&gt;error('Operation failed', ['exception' =&gt; $error]);
+}
+
+reportFailure($logger, $exception);
+$logger-&gt;info('User {id} signed in', ['id' =&gt; $userId]);
+$logger-&gt;log('notice', 'Job completed', ['job' =&gt; $jobId]);</code></pre>
+        <p>Direct PSR-3 methods use the same level filtering and default context. The terminal fluent <code>log()</code> receives a message; the logger's PSR-3 <code>log()</code> receives a level followed by a message. Unknown levels raise <code>Psr\Log\InvalidArgumentException</code>.</p>
+        <p>For PSR-3 compatibility, direct logger methods preserve all context values as supplied, including <code>LazyValue</code> objects. Deferred value resolution is a feature of fluent records.</p>
+      </section>
+
+      <section id="reference">
+        <h2>API reference</h2>
+        <div class="table-scroll"><table>
+          <thead><tr><th scope="col">Entry point</th><th scope="col">Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>at(Level|string)</code>, eight <code>at*()</code> methods</td><td>Start an immutable fluent record at a PSR-3 level.</td></tr>
+            <tr><td><code>with(string, mixed)</code></td><td>Attach one context value.</td></tr>
+            <tr><td><code>withContext(array)</code></td><td>Merge context on a record, or derive a contextual logger.</td></tr>
+            <tr><td><code>withCause(?Throwable)</code></td><td>Set the <code>exception</code> context value, including null.</td></tr>
+            <tr><td><code>when(bool|Closure)</code></td><td>Require a condition before admitting a record.</td></tr>
+            <tr><td><code>every(int)</code>, <code>first(int)</code>, <code>atMostEvery(float)</code></td><td>Limit calls by frequency, count or elapsed seconds.</td></tr>
+            <tr><td><code>withRateLimitKey(string)</code></td><td>Choose the key for rate-limit state instead of using the call site.</td></tr>
+            <tr><td><code>isEnabled()</code></td><td>Check level eligibility without consuming quota.</td></tr>
+            <tr><td><code>log(string|Stringable|Closure, array)</code></td><td>Emit a template and structured context. A message closure returns a string or Stringable.</td></tr>
+            <tr><td><code>logf(string, mixed ...)</code></td><td>Emit a message formatted with <code>sprintf()</code>. Arguments must resolve to scalar, null or Stringable values.</td></tr>
+            <tr><td><code>LazyValue::of(Closure)</code></td><td>Defer a top-level context value or a formatting argument.</td></tr>
+            <tr><td><code>resetRateLimits()</code></td><td>Clear the logger family's shared limiter store.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Read the source and examples on <a href="https://github.com/roukmoute/phlogger">GitHub</a>. The API is inspired by <a href="https://github.com/google/flogger">Google Flogger</a> and integrates with the <a href="https://www.php-fig.org/psr/psr-3/">PSR-3 specification</a>.</p>
+      </section>
+    </main>
+  </div>
+  <footer><div class="footer-inner"><p>Phlogger · A Fluent Logging API for PHP</p><a href="../fr/index.html" hreflang="fr" lang="fr">Documentation en français</a></div></footer>
+</body>
+</html>
