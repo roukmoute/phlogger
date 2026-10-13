@@ -23,6 +23,7 @@ jobs:
       - run: composer update --no-interaction --prefer-dist
       - run: composer check
       - run: php examples/basic.php
+      - run: php examples/monolog.php
 
   production:
     runs-on: ubuntu-latest
@@ -34,4 +35,7 @@ jobs:
           coverage: none
           tools: composer:v2
       - run: composer update --no-dev --no-interaction --prefer-dist
+      - name: Verify production package dependencies
+        run: |
+          php -r '$packages = array_column(json_decode(file_get_contents("vendor/composer/installed.json"), true, 512, JSON_THROW_ON_ERROR)["packages"], "name"); sort($packages); if ($packages !== ["psr/log"]) { fwrite(STDERR, "Unexpected production packages: ".implode(", ", $packages).PHP_EOL); exit(1); }'
       - run: php examples/basic.php
