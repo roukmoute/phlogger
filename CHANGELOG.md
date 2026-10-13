@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.6 — 2026-10-13
+
+- Add an alternative Symfony recipe that decorates `logger`, making `@logger`, PSR interface autowiring and concrete `FluentLogger` injection resolve to the same Phlogger instance.
+- Preserve the original backend through an explicit inner service, avoiding circular references and retaining Monolog handlers, processors and named channels.
+- Add an executable default-logger example and integration tests for decoration, both injection types, PSR context, fluent lazy values and channel isolation.
+- Document both Symfony variants and their quota reset configuration in English Markdown and the English/French website; run the new example in CI.
+
+Runtime code, the public API and production dependencies are unchanged.
+
 ## 0.1.5 — 2026-10-13
 
 - Document and test application call-site information with Monolog's `IntrospectionProcessor`, including inherited PSR methods and buffered delivery.
