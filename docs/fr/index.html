@@ -26,6 +26,7 @@
       <li><a href="#filtering">Filtres et conditions</a></li>
       <li><a href="#rate-limits">Limitation des logs</a></li>
       <li><a href="#psr">Intégration PSR-3</a></li>
+      <li><a href="#monolog">Intégration avec Monolog</a></li>
       <li><a href="#reference">Référence de l'API</a></li>
     </ul></nav></aside>
     <main id="main">
@@ -178,6 +179,60 @@ $logger-&gt;info('User {id} signed in', ['id' =&gt; $userId]);
 $logger-&gt;log('notice', 'Job completed', ['job' =&gt; $jobId]);</code></pre>
         <p>Les méthodes PSR-3 directes utilisent les mêmes filtres de niveau et le contexte par défaut. Le <code>log()</code> terminal d'une chaîne fluide reçoit un message ; le <code>log()</code> PSR-3 du logger reçoit un niveau puis un message. Les niveaux inconnus provoquent une <code>Psr\Log\InvalidArgumentException</code>.</p>
         <p>Pour préserver la compatibilité PSR-3, les méthodes directes du logger conservent toutes les valeurs de contexte telles qu'elles sont fournies, y compris les objets <code>LazyValue</code>. La résolution des valeurs différées est une fonctionnalité des enregistrements fluides.</p>
+      </section>
+
+      <section id="monolog">
+        <h2>Intégration avec Monolog</h2>
+        <p>Phlogger est une façade fluide pour tout backend PSR-3. Monolog est une option : il fournit les handlers, processors et formatters, tandis que Phlogger gère le contexte fluide, les conditions et les limitations. Votre application choisit d'installer Monolog ; la seule dépendance d'exécution de Phlogger reste <code>psr/log</code>.</p>
+        <pre><code>composer require "monolog/monolog:^3"</code></pre>
+        <p>Cet exemple écrit des enregistrements JSON sur la sortie standard. <code>PsrLogMessageProcessor</code> interpole les paramètres PSR-3, tandis que <code>JsonFormatter</code> met en forme l'enregistrement et son contexte structuré.</p>
+        <pre><code>use Monolog\Formatter\JsonFormatter;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger as MonologLogger;
+use Monolog\Processor\PsrLogMessageProcessor;
+use Phlogger\FluentLogger;
+use Phlogger\LazyValue;
+use Phlogger\Level;
+
+$handler = new StreamHandler('php://stdout', Monolog\Level::Info);
+$handler-&gt;setFormatter(new JsonFormatter());
+
+$backend = new MonologLogger('app');
+$backend-&gt;pushHandler($handler);
+$backend-&gt;pushProcessor(new PsrLogMessageProcessor());
+
+$logger = new FluentLogger(
+    $backend,
+    filter: static fn (Level $level): bool =&gt; $backend-&gt;isHandling($level-&gt;value),
+);
+$requestLogger = $logger-&gt;withContext(['request_id' =&gt; 'request-123']);
+
+$requestLogger-&gt;atInfo()
+    -&gt;log('Order {order_id} accepted', ['order_id' =&gt; 42]);
+
+$error = new RuntimeException('Payment provider unavailable');
+$requestLogger-&gt;atError()
+    -&gt;withCause($error)
+    -&gt;log('Payment failed for order {order_id}', ['order_id' =&gt; 42]);</code></pre>
+        <p>L'enregistrement info contient le message <code>Order 42 accepted</code> et conserve les identifiants de requête et de commande dans son contexte. L'enregistrement error porte la cause sous <code>exception</code>, que le formatter de Monolog peut normaliser.</p>
+        <h3>Éviter les calculs différés aux niveaux rejetés</h3>
+        <p>Le filtre vérifie si le pipeline configuré dans Monolog accepte actuellement le niveau choisi. Avec le handler de niveau info ci-dessus, un enregistrement debug est rejeté avant que Phlogger évalue ses valeurs différées :</p>
+        <pre><code>$debugEvaluations = 0;
+
+$requestLogger-&gt;atDebug()
+    -&gt;with('details', LazyValue::of(static function () use (&amp;$debugEvaluations): string {
+        ++$debugEvaluations;
+        return 'Diagnostic summary';
+    }))
+    -&gt;log('Diagnostics: {details}');
+
+// $debugEvaluations remains 0.</code></pre>
+        <div class="note"><p><strong>Vérifiez le pipeline complet.</strong> <code>isHandling()</code> estime si un handler accepte un niveau ; cette méthode ne garantit pas la livraison. Les handlers de buffering ou de routage peuvent prendre des décisions supplémentaires ensuite. Utilisez la vérification du logger configuré plutôt que de recopier le seuil du handler de fichier final : un handler extérieur peut volontairement recueillir les niveaux plus détaillés. Le <code>minimumLevel</code> de Phlogger peut restreindre davantage ce pipeline.</p></div>
+        <h3>Exécuter l'exemple complet</h3>
+        <p>Le dépôt contient <a href="https://github.com/roukmoute/phlogger/blob/master/examples/monolog.php">un exemple Monolog exécutable</a>. Dans un clone de développement, <code>composer install</code> installe Monolog comme dépendance de développement pour les exemples et tests d'intégration :</p>
+        <pre><code>composer install
+php examples/monolog.php</code></pre>
+        <p>Consultez le <a href="https://github.com/Seldaek/monolog/blob/main/doc/01-usage.md">guide d'utilisation de Monolog</a> pour configurer les handlers et processors.</p>
       </section>
 
       <section id="reference">
