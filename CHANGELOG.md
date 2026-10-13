@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 — 2026-10-13
+
+- Publish `roukmoute/phlogger` on Packagist with automatic GitHub updates.
+- Document direct installation with `composer require roukmoute/phlogger` in the README and both website languages.
+- Add documentation, homepage and issue-tracker links to the package metadata.
+
 ## 0.1.2 — 2026-10-13
 
 - Describe Phlogger directly as a fluent PSR-3 logging API in the README, package metadata and both website languages.
