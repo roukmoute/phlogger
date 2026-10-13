@@ -10,12 +10,24 @@ permissions:
 
 jobs:
   quality:
-    name: Quality (PHP ${{ matrix.php }})
+    name: Quality (PHP ${{ matrix.php }}, Symfony ${{ matrix.symfony }}, Illuminate ${{ matrix.illuminate }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.3', '8.4', '8.5']
+        include:
+          - php: '8.3'
+            symfony: '^7.4'
+            illuminate: '^12.0'
+          - php: '8.3'
+            symfony: '^7.4'
+            illuminate: '^13.0'
+          - php: '8.4'
+            symfony: '^8.0'
+            illuminate: '^13.0'
+          - php: '8.5'
+            symfony: '^8.0'
+            illuminate: '^13.0'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -25,11 +37,22 @@ jobs:
           coverage: none
           tools: composer:v2
       - run: composer validate --strict
-      - run: composer update --no-interaction --prefer-dist
+      - name: Install the framework compatibility set
+        run: >-
+          composer update --no-interaction --prefer-dist
+          --with 'symfony/dependency-injection:${{ matrix.symfony }}'
+          --with 'illuminate/config:${{ matrix.illuminate }}'
+          --with 'illuminate/container:${{ matrix.illuminate }}'
+          --with 'illuminate/events:${{ matrix.illuminate }}'
+          --with 'illuminate/log:${{ matrix.illuminate }}'
       - run: composer check
       - run: php examples/basic.php
       - run: php examples/monolog.php
       - run: php examples/monolog-introspection.php
+      - run: php examples/symfony.php
+      - run: php examples/laravel.php
+      - name: Smoke-check benchmark execution
+        run: php benchmarks/run.php --iterations=1000 --samples=3 --warmup=100
 
   production:
     name: Production (PHP ${{ matrix.php }})
