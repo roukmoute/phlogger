@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Documentation Phlogger : API de logging fluide pour PHP 8.5, valeurs différées, contexte structuré, intégration PSR-3 et limitation des logs.">
+  <title>Phlogger — Documentation en français</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="alternate" hreflang="en" href="../en/index.html">
+</head>
+<body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">ph</span>logger</a>
+    <nav class="toplinks" aria-label="Projet et langue">
+      <a href="https://github.com/roukmoute/phlogger">GitHub</a>
+      <div class="languages"><a href="../en/index.html" hreflang="en" lang="en">EN</a><span aria-current="page">FR</span></div>
+    </nav>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar"><nav aria-label="Sur cette page"><p>Documentation</p><ul>
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#quick-start">Premiers pas</a></li>
+      <li><a href="#context">Contexte et exceptions</a></li>
+      <li><a href="#lazy">Évaluation différée</a></li>
+      <li><a href="#filtering">Filtres et conditions</a></li>
+      <li><a href="#rate-limits">Limitation des logs</a></li>
+      <li><a href="#psr">Intégration PSR-3</a></li>
+      <li><a href="#reference">Référence de l'API</a></li>
+    </ul></nav></aside>
+    <main id="main">
+      <p class="eyebrow" lang="en">A Fluent Logging API for PHP</p>
+      <h1>Des logs qui expriment votre intention.</h1>
+      <p class="lead">Choisissez un niveau, ajoutez du contexte structuré et décidez quand écrire. Phlogger adapte l'approche fluide de Google Flogger à PHP moderne et au logger PSR-3 que vous utilisez déjà.</p>
+      <div class="badges"><span class="badge">PHP 8.5+</span><span class="badge">Seule dépendance d'exécution : psr/log</span><span class="badge">Builders immuables</span></div>
+      <pre><code>use Phlogger\FluentLogger;
+use Phlogger\Level;
+
+$logger = new FluentLogger($psrBackend, minimumLevel: Level::Info);
+
+$logger-&gt;atWarning()
+    -&gt;withCause($exception)
+    -&gt;atMostEvery(30)
+    -&gt;log('Payment failed for order {id}', ['id' =&gt; $orderId]);</code></pre>
+
+      <section id="installation">
+        <h2>Installation</h2>
+        <p>Phlogger nécessite PHP 8.5 ou une version ultérieure. Sa seule dépendance d'exécution est <code>psr/log</code>. Fournissez un backend PSR-3 : le logger de votre application, un logger de test ou <code>Psr\Log\NullLogger</code>.</p>
+        <p>Installez la version publiée directement depuis GitHub grâce à la prise en charge des dépôts VCS par Composer :</p>
+        <pre><code>composer config repositories.phlogger vcs https://github.com/roukmoute/phlogger
+composer require "roukmoute/phlogger:^0.1"</code></pre>
+        <p>Phlogger fournit l'API de logging. Le backend fourni assure le stockage, la mise en forme et le transport.</p>
+      </section>
+
+      <section id="quick-start">
+        <h2>Premiers pas</h2>
+        <p>Chaque méthode <code>at*()</code> démarre un enregistrement fluide. Terminez par <code>log()</code> pour l'émettre. Les huit niveaux PSR-3 sont disponibles : debug, info, notice, warning, error, critical, alert et emergency.</p>
+        <pre><code>$logger-&gt;atInfo()
+    -&gt;with('user_id', $userId)
+    -&gt;log('User {user_id} signed in');
+
+$logger-&gt;at(Level::Notice)
+    -&gt;withContext(['job' =&gt; 'daily-report', 'rows' =&gt; 120])
+    -&gt;log('Report generated');
+
+$logger-&gt;atError()
+    -&gt;withCause($exception)
+    -&gt;log('Report generation failed');</code></pre>
+        <p><code>log()</code> transmet le modèle du message et son contexte au backend. L'interpolation des paramètres appartient au backend. Utilisez <code>logf()</code> pour demander explicitement une mise en forme avec <code>sprintf()</code>.</p>
+        <pre><code>$logger-&gt;atInfo()-&gt;logf('Processed %d rows in %.2f seconds', $rows, $seconds);</code></pre>
+      </section>
+
+      <section id="context">
+        <h2>Contexte et exceptions</h2>
+        <p>Utilisez <code>with()</code> pour une valeur et <code>withContext()</code> pour un groupe. Le contexte du logger, celui de l'enregistrement fluide puis celui de l'appel terminal sont fusionnés dans cet ordre : la valeur la plus spécifique l'emporte.</p>
+        <pre><code>$requestLogger = $logger-&gt;withContext([
+    'request_id' =&gt; $requestId,
+    'component' =&gt; 'http',
+]);
+
+$requestLogger-&gt;atInfo()
+    -&gt;with('component', 'checkout')
+    -&gt;log('Checkout started', ['component' =&gt; 'payment']);
+// The backend receives component=payment and request_id=$requestId.</code></pre>
+        <p>Le logger et les builders fluides sont immuables. Ajouter du contexte retourne une nouvelle valeur : le logger d'origine conserve ses valeurs par défaut. Les clones contextuels partagent le même état de limitation.</p>
+        <p><code>withCause($throwable)</code> place la cause sous la clé PSR-3 <code>exception</code>. Les exceptions et les erreurs PHP sont acceptées. <code>withCause(null)</code> attribue null à cette clé et efface ainsi une cause précédente. Le contexte de l'appel terminal <code>log()</code> peut remplacer cette clé.</p>
+        <p>Les tableaux, objets, valeurs nulles et closures ordinaires restent des données structurées. Phlogger ne convertit pas les valeurs arbitraires en chaînes et n'exécute pas les closures ordinaires du contexte.</p>
+      </section>
+
+      <section id="lazy">
+        <h2>Évaluation différée</h2>
+        <p>Encapsulez une valeur de contexte ou un argument de mise en forme coûteux dans <code>LazyValue::of()</code>. Le message peut également être une closure. Ces calculs sont exécutés seulement après l'admission de l'enregistrement par les filtres, conditions et limitations de Phlogger.</p>
+        <pre><code>use Phlogger\LazyValue;
+
+$logger-&gt;atDebug()
+    -&gt;with('summary', LazyValue::of(fn () =&gt; calculateSummary()))
+    -&gt;log('Summary: {summary}');
+
+$logger-&gt;atDebug()
+    -&gt;log(fn () =&gt; buildDiagnosticMessage());
+
+$logger-&gt;atInfo()
+    -&gt;every(100)
+    -&gt;logf('Queue size: %d', LazyValue::of(fn () =&gt; countQueue()));</code></pre>
+        <p>Une même valeur différée est évaluée une fois par enregistrement, puis son résultat est transmis au backend. Seules les valeurs au premier niveau du contexte sont résolues : Phlogger ne parcourt pas les tableaux ou objets imbriqués. Une closure ordinaire du contexte est conservée telle quelle.</p>
+        <div class="note"><p><strong>Le backend peut encore filtrer l'enregistrement.</strong> PSR-3 ne permet pas de consulter les niveaux actifs d'un backend. Configurez <code>minimumLevel</code> ou <code>filter</code> dans Phlogger pour éviter les calculs différés aux niveaux désactivés par votre application.</p></div>
+        <p>Évitez les effets de bord applicatifs dans les callbacks différés. Les exceptions levées par les callbacks et par le backend remontent à l'appelant.</p>
+      </section>
+
+      <section id="filtering">
+        <h2>Filtres et conditions</h2>
+        <p>Le niveau minimum par défaut est <code>Level::Debug</code>. Augmentez-le pour exclure les enregistrements plus détaillés. Une closure <code>filter</code> optionnelle reçoit le <code>Level</code> sélectionné et retourne un booléen ; elle restreint davantage le logging.</p>
+        <pre><code>$logger = new FluentLogger(
+    $psrBackend,
+    minimumLevel: Level::Info,
+    filter: fn (Level $level): bool =&gt; $level !== Level::Notice,
+);
+
+$logger-&gt;atWarning()
+    -&gt;when(fn () =&gt; $queue-&gt;isOverloaded())
+    -&gt;log('Queue is overloaded');
+
+$logger-&gt;atInfo()
+    -&gt;when($shouldAudit)
+    -&gt;log('Audit event recorded');</code></pre>
+        <p>Plusieurs conditions <code>when()</code> doivent toutes autoriser l'enregistrement. <code>isEnabled()</code> permet de vérifier le niveau avant un calcul séparé : cette méthode ne consomme aucun quota et ne prédit pas le résultat des conditions ou limitations.</p>
+        <pre><code>if ($logger-&gt;atDebug()-&gt;isEnabled()) {
+    // Prefer LazyValue for work belonging to a single record.
+}</code></pre>
+      </section>
+
+      <section id="rate-limits">
+        <h2>Limitation des logs</h2>
+        <p>Contrôlez les logs répétitifs directement au site d'appel. Les limites sont vérifiées avant l'évaluation différée du message et du contexte.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th scope="col">Méthode</th><th scope="col">Comportement</th></tr></thead>
+          <tbody>
+            <tr><td><code>every(3)</code></td><td>Admet le premier appel, puis les appels 4, 7, 10, etc. <code>every(1)</code> n'a aucun effet.</td></tr>
+            <tr><td><code>first(5)</code></td><td>Admet seulement les cinq premiers enregistrements éligibles pour ce site et cette politique. <code>first(0)</code> supprime tous les enregistrements.</td></tr>
+            <tr><td><code>atMostEvery(30)</code></td><td>Admet le premier appel, puis impose au moins 30 secondes depuis le dernier appel admis. Zéro désactive cette limite temporelle.</td></tr>
+          </tbody>
+        </table></div>
+        <pre><code>$logger-&gt;atWarning()
+    -&gt;atMostEvery(30)
+    -&gt;log('Remote service is unavailable');
+
+$logger-&gt;atDebug()
+    -&gt;first(5)
+    -&gt;log('Initial sample', ['sample' =&gt; $sample]);</code></pre>
+        <p>Si une chaîne combine plusieurs limites, toutes doivent autoriser l'appel. Les compteurs d'intervalle et la fenêtre temporelle sont réinitialisés ensemble après admission. Un enregistrement rejeté par un filtre de niveau ou une condition ne consomme aucun quota.</p>
+        <p><code>every()</code> exige un nombre strictement positif ; <code>first()</code> accepte zéro ou un nombre positif. <code>atMostEvery()</code> exige une durée finie et non négative en secondes. Répéter une méthode de limitation remplace la valeur précédente de cette méthode.</p>
+        <h3>Sites d'appel et clés explicites</h3>
+        <p>Par défaut, l'état dépend du fichier et de la ligne de l'appel terminal, du niveau et de la politique de limitation, au sein de la famille du logger. Des lignes différentes sont indépendantes. Deux appels sur la même ligne avec le même niveau et la même politique partagent leur état.</p>
+        <p>Utilisez <code>withRateLimitKey()</code> pour choisir une clé stable, notamment dans une fonction qui encapsule le logging. Une clé partage son état seulement si le niveau et la politique sont également identiques.</p>
+        <pre><code>$logger-&gt;atWarning()
+    -&gt;withRateLimitKey('payment-provider-unavailable')
+    -&gt;atMostEvery(30)
+    -&gt;log('Payment provider unavailable');</code></pre>
+        <h3>Durée de vie et mémoire</h3>
+        <p>L'état est local à la famille du logger et au processus PHP courant. Les clones contextuels le partagent ; des loggers construits séparément et des workers distincts ne le partagent pas. Les limites ne coordonnent pas plusieurs workers PHP-FPM ou instances d'application.</p>
+        <p>Le stockage contient jusqu'à 1 024 entrées par défaut. Le paramètre de constructeur <code>rateLimitCapacity</code> permet de modifier cette capacité. Quand il est plein, l'entrée utilisée le moins récemment est supprimée. Une clé supprimée recommence avec un quota neuf. Préférez des clés stables à des identifiants issus d'un ensemble illimité.</p>
+        <p>Les limites temporelles utilisent une horloge monotone. Une closure <code>clock</code> optionnelle dans le constructeur, retournant des secondes, permet des tests déterministes. <code>resetRateLimits()</code> vide le stockage partagé.</p>
+        <div class="note"><p><strong>L'admission consomme le quota.</strong> Un enregistrement admis par Phlogger consomme sa limite même si un callback différé lève une exception, si le backend échoue ou s'il refuse l'écriture. PSR-3 ne permet pas à Phlogger de confirmer la livraison.</p></div>
+      </section>
+
+      <section id="psr">
+        <h2>Intégration PSR-3</h2>
+        <p><code>FluentLogger</code> implémente <code>Psr\Log\LoggerInterface</code>. Fournissez-le aux bibliothèques qui attendent un logger PSR-3 ou utilisez ses méthodes classiques à côté des appels fluides.</p>
+        <pre><code>use Psr\Log\LoggerInterface;
+
+function reportFailure(LoggerInterface $logger, Throwable $error): void
+{
+    $logger-&gt;error('Operation failed', ['exception' =&gt; $error]);
+}
+
+reportFailure($logger, $exception);
+$logger-&gt;info('User {id} signed in', ['id' =&gt; $userId]);
+$logger-&gt;log('notice', 'Job completed', ['job' =&gt; $jobId]);</code></pre>
+        <p>Les méthodes PSR-3 directes utilisent les mêmes filtres de niveau et le contexte par défaut. Le <code>log()</code> terminal d'une chaîne fluide reçoit un message ; le <code>log()</code> PSR-3 du logger reçoit un niveau puis un message. Les niveaux inconnus provoquent une <code>Psr\Log\InvalidArgumentException</code>.</p>
+        <p>Pour préserver la compatibilité PSR-3, les méthodes directes du logger conservent toutes les valeurs de contexte telles qu'elles sont fournies, y compris les objets <code>LazyValue</code>. La résolution des valeurs différées est une fonctionnalité des enregistrements fluides.</p>
+      </section>
+
+      <section id="reference">
+        <h2>Référence de l'API</h2>
+        <div class="table-scroll"><table>
+          <thead><tr><th scope="col">Point d'entrée</th><th scope="col">Rôle</th></tr></thead>
+          <tbody>
+            <tr><td><code>at(Level|string)</code>, huit méthodes <code>at*()</code></td><td>Démarrer un enregistrement fluide immuable à un niveau PSR-3.</td></tr>
+            <tr><td><code>with(string, mixed)</code></td><td>Ajouter une valeur de contexte.</td></tr>
+            <tr><td><code>withContext(array)</code></td><td>Fusionner le contexte d'un enregistrement ou créer un logger contextuel.</td></tr>
+            <tr><td><code>withCause(?Throwable)</code></td><td>Définir la valeur de contexte <code>exception</code>, y compris null.</td></tr>
+            <tr><td><code>when(bool|Closure)</code></td><td>Exiger une condition avant d'admettre un enregistrement.</td></tr>
+            <tr><td><code>every(int)</code>, <code>first(int)</code>, <code>atMostEvery(float)</code></td><td>Limiter les appels par fréquence, nombre ou durée en secondes.</td></tr>
+            <tr><td><code>withRateLimitKey(string)</code></td><td>Choisir la clé de l'état de limitation à la place du site d'appel.</td></tr>
+            <tr><td><code>isEnabled()</code></td><td>Vérifier le niveau sans consommer de quota.</td></tr>
+            <tr><td><code>log(string|Stringable|Closure, array)</code></td><td>Émettre un modèle de message et du contexte structuré. Une closure de message retourne une chaîne ou un Stringable.</td></tr>
+            <tr><td><code>logf(string, mixed ...)</code></td><td>Émettre un message mis en forme avec <code>sprintf()</code>. Les arguments doivent se résoudre en valeurs scalaires, nulles ou Stringable.</td></tr>
+            <tr><td><code>LazyValue::of(Closure)</code></td><td>Différer une valeur de contexte au premier niveau ou un argument de mise en forme.</td></tr>
+            <tr><td><code>resetRateLimits()</code></td><td>Vider l'état de limitation partagé par la famille du logger.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Retrouvez les sources et exemples sur <a href="https://github.com/roukmoute/phlogger">GitHub</a>. L'API s'inspire de <a href="https://github.com/google/flogger">Google Flogger</a> et s'intègre à la <a href="https://www.php-fig.org/psr/psr-3/">spécification PSR-3</a>.</p>
+      </section>
+    </main>
+  </div>
+  <footer><div class="footer-inner"><p lang="en">Phlogger · A Fluent Logging API for PHP</p><a href="../en/index.html" hreflang="en" lang="en">Documentation in English</a></div></footer>
+</body>
+</html>
