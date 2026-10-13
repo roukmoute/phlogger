@@ -1,9 +1,9 @@
 {
     "name": "roukmoute/phlogger",
-    "description": "A fluent logging API for PHP, inspired by Google's Flogger.",
+    "description": "A fluent logging API for PHP.",
     "type": "library",
     "license": "MIT",
-    "keywords": ["logging", "fluent", "psr-3", "flogger", "lazy"],
+    "keywords": ["logging", "fluent", "psr-3", "lazy"],
     "require": {
         "php": "^8.5",
         "psr/log": "^3.0"

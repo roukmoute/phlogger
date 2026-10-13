@@ -1,6 +1,6 @@
 # Phlogger
 
-A fluent logging API for PHP, inspired by [Google's Flogger](https://github.com/google/flogger).
+A fluent logging API for PHP.
 
 Phlogger adds readable log statements, deferred computation and per-statement rate limiting to any PSR-3 logger. It requires **PHP 8.5+** and has exactly one production package dependency: **`psr/log`**. Bring your existing backend; Phlogger does not write files or configure handlers.
 
@@ -214,6 +214,6 @@ php examples/monolog.php
 
 Monolog, PHPUnit and PHPStan are development dependencies only. See [CONTRIBUTING.md](CONTRIBUTING.md) for the test and review workflow. The CI runs both examples and checks an isolated production-only installation containing exactly `psr/log`.
 
-## License and inspiration
+## License
 
-MIT; see [LICENSE](LICENSE). Phlogger is an independent PHP implementation inspired by Flogger's API design. It is not affiliated with Google and does not port Google's Java source code.
+MIT; see [LICENSE](LICENSE).
