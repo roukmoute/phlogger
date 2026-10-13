@@ -50,6 +50,7 @@ jobs:
       - run: php examples/monolog.php
       - run: php examples/monolog-introspection.php
       - run: php examples/symfony.php
+      - run: php examples/symfony-default-logger.php
       - run: php examples/laravel.php
       - name: Smoke-check benchmark execution
         run: php benchmarks/run.php --iterations=1000 --samples=3 --warmup=100
