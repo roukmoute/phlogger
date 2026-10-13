@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.5 — 2026-10-13
+
+- Document and test application call-site information with Monolog's `IntrospectionProcessor`, including inherited PSR methods and buffered delivery.
+- Add reproducible API benchmarks for direct PSR calls, enabled and disabled fluent statements, lazy values, reusable entries and rate limits, with repeated samples and JSON output.
+- Add executable Symfony and Laravel component examples, an English integration guide and bilingual website recipes for container injection, channels and quota lifecycle choices.
+- Test Symfony autowiring and channel routing, Laravel context and log events, scoped quotas, shared worker quotas and explicit resets with deterministic clocks.
+- Expand quality CI to compatible Symfony DependencyInjection 7.4 / 8.x and Illuminate 12.x / 13.x sets across PHP 8.3, 8.4 and 8.5; smoke-check all examples and the benchmark without timing thresholds.
+
+Framework components and Monolog are development dependencies only. Runtime code and the public API are unchanged; `psr/log` remains the only production package dependency.
+
 ## 0.1.4 — 2026-10-13
 
 - Lower the minimum supported PHP version to 8.3 without changing the public API or runtime source code.
