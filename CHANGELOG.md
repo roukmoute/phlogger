@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 — 2026-10-13
+
+- Describe Phlogger directly as a fluent PSR-3 logging API in the README, package metadata and both website languages.
+- Remove external inspiration references and links from the current documentation.
+
 ## 0.1.1 — 2026-10-13
 
 - Add an executable Monolog 3 example with JSON output, PSR-3 interpolation, exception context and deferred computation filtered through the backend's `isHandling()` method.
