@@ -47,9 +47,8 @@ $logger-&gt;atWarning()
       <section id="installation">
         <h2>Installation</h2>
         <p>Phlogger nécessite PHP 8.5 ou une version ultérieure. Sa seule dépendance d'exécution est <code>psr/log</code>. Fournissez un backend PSR-3 : le logger de votre application, un logger de test ou <code>Psr\Log\NullLogger</code>.</p>
-        <p>Installez la version publiée directement depuis GitHub grâce à la prise en charge des dépôts VCS par Composer :</p>
-        <pre><code>composer config repositories.phlogger vcs https://github.com/roukmoute/phlogger
-composer require "roukmoute/phlogger:^0.1"</code></pre>
+        <p>Installez Phlogger depuis <a href="https://packagist.org/packages/roukmoute/phlogger">Packagist</a> avec Composer :</p>
+        <pre><code>composer require roukmoute/phlogger</code></pre>
         <p>Phlogger fournit l'API de logging. Le backend fourni assure le stockage, la mise en forme et le transport.</p>
       </section>
 

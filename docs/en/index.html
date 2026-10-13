@@ -47,9 +47,8 @@ $logger-&gt;atWarning()
       <section id="installation">
         <h2>Installation</h2>
         <p>Phlogger targets PHP 8.5 and later. Its only runtime package dependency is <code>psr/log</code>. Supply any PSR-3 backend: your application's logger, a test logger, or <code>Psr\Log\NullLogger</code>.</p>
-        <p>Install the tagged release directly from GitHub using Composer's VCS repository support:</p>
-        <pre><code>composer config repositories.phlogger vcs https://github.com/roukmoute/phlogger
-composer require "roukmoute/phlogger:^0.1"</code></pre>
+        <p>Install Phlogger from <a href="https://packagist.org/packages/roukmoute/phlogger">Packagist</a> with Composer:</p>
+        <pre><code>composer require roukmoute/phlogger</code></pre>
         <p>Phlogger is the logging API; the supplied backend handles storage, formatting and transport.</p>
       </section>
 
