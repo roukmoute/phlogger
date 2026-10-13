@@ -26,26 +26,13 @@ The second statement does not call `calculateSummary()` because Phlogger's minim
 
 ## Installation
 
-Once a release is registered on Packagist:
+Install the package from [Packagist](https://packagist.org/packages/roukmoute/phlogger):
 
 ```sh
 composer require roukmoute/phlogger
 ```
 
-To install a tagged release directly from GitHub, add this repository to your application's `composer.json`:
-
-```json
-{
-    "repositories": [
-        {"type": "vcs", "url": "https://github.com/roukmoute/phlogger"}
-    ],
-    "require": {
-        "roukmoute/phlogger": "^0.1"
-    }
-}
-```
-
-Tagged releases are available directly from GitHub. Private forks require GitHub access configured in Composer.
+Requires PHP 8.5 or later. Composer installs a tagged release and `psr/log`; no custom repository configuration is needed. Monolog remains an optional backend chosen by your application.
 
 ## Levels and PSR-3 compatibility
 
@@ -198,7 +185,7 @@ State is shared by contextual clones of one logger and is local to that logger f
 
 ## Documentation website
 
-The static documentation under `docs/` is available in [English](docs/en/index.html) and [French](docs/fr/index.html). All Markdown documentation in the repository is in English.
+The documentation website is available in [English](https://roukmoute.github.io/phlogger/en/) and [French](https://roukmoute.github.io/phlogger/fr/). Its static source is under `docs/`. All Markdown documentation in the repository is in English.
 
 The Pages workflow deploys on pushes to `master` and can also be started manually. To configure a fork, enable **Settings → Pages → Source → GitHub Actions**. Private repositories need a GitHub plan that supports Pages; published Pages content may be public depending on account settings. No build dependencies are needed.
 
