@@ -32,7 +32,7 @@ Once a release is registered on Packagist:
 composer require roukmoute/phlogger
 ```
 
-Before the first release, add this repository to your application's `composer.json`:
+To install a tagged release directly from GitHub, add this repository to your application's `composer.json`:
 
 ```json
 {
@@ -45,7 +45,7 @@ Before the first release, add this repository to your application's `composer.js
 }
 ```
 
-The `v0.1.0` release is available directly from GitHub. A private repository requires GitHub access configured in Composer.
+Tagged releases are available directly from GitHub. Private forks require GitHub access configured in Composer.
 
 ## Levels and PSR-3 compatibility
 
@@ -64,6 +64,49 @@ $logger->log('error', 'Request failed', ['exception' => $exception]);
 ```
 
 These PSR-3 methods preserve arbitrary context values, including closures and `LazyValue` objects. Deferred values are evaluated only through the fluent API. Unknown levels throw `Psr\Log\InvalidArgumentException`, even when logging is disabled.
+
+## Integration with Monolog
+
+Phlogger is a fluent layer over **any PSR-3 logger**. Monolog is one supported backend: it owns handlers, destinations, formatting and buffering, while Phlogger provides the fluent statements and deferred computation.
+
+If your application chooses Monolog, install it in that application:
+
+```sh
+composer require "monolog/monolog:^3.0"
+```
+
+```php
+$handler = new Monolog\Handler\StreamHandler('php://stdout', Monolog\Level::Info);
+$handler->setFormatter(new Monolog\Formatter\JsonFormatter());
+$backend = new Monolog\Logger('app', [$handler], [
+    new Monolog\Processor\PsrLogMessageProcessor(),
+]);
+
+$logger = new Phlogger\FluentLogger(
+    $backend,
+    filter: static fn (Phlogger\Level $level): bool =>
+        $backend->isHandling($level->value),
+);
+
+$logger->atWarning()
+    ->withCause($exception)
+    ->with('order_id', 42)
+    ->atMostEvery(30)
+    ->log('Payment failed for order {order_id}');
+```
+
+`PsrLogMessageProcessor` interpolates `{placeholders}` from the context. Without it, Phlogger still forwards the original template and structured values. `JsonFormatter` formats the record for output, including exception details.
+
+The optional filter consults Monolog's complete handler pipeline before Phlogger evaluates lazy messages or context. It follows later handler changes and avoids deferred work at disabled levels. Phlogger's own `minimumLevel` can further restrict those levels. `isHandling()` estimates level acceptance; buffering, routing and other handler policies can still affect delivery. Consult the backend pipeline rather than copying the threshold of a final file handler: `FingersCrossedHandler`, for example, can retain debug records until an error triggers a flush.
+
+In this repository, Monolog is a **development dependency only**, used by the executable [Monolog example](examples/monolog.php) and the [integration tests](tests/Integration/MonologIntegrationTest.php). Phlogger's production package dependency remains `psr/log` alone. To run the example from a checkout:
+
+```sh
+composer install
+php examples/monolog.php
+```
+
+It writes three JSON records to stdout: an order, one rate-limited payment warning, and a completion message. Debug callbacks remain unevaluated. Applications using long-lived workers own Monolog's `reset()`/`close()` lifecycle; Phlogger exposes `resetRateLimits()` separately.
 
 ## Context and exceptions
 
@@ -166,9 +209,10 @@ composer install
 composer validate --strict
 composer check
 php examples/basic.php
+php examples/monolog.php
 ```
 
-PHPUnit and PHPStan are development dependencies only. See [CONTRIBUTING.md](CONTRIBUTING.md) for the test and review workflow. The CI also checks installation with production dependencies only and runs the executable example.
+Monolog, PHPUnit and PHPStan are development dependencies only. See [CONTRIBUTING.md](CONTRIBUTING.md) for the test and review workflow. The CI runs both examples and checks an isolated production-only installation containing exactly `psr/log`.
 
 ## License and inspiration
 
