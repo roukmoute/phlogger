@@ -9,6 +9,7 @@ php examples/basic.php
 php examples/monolog.php
 php examples/monolog-introspection.php
 php examples/symfony.php
+php examples/symfony-default-logger.php
 php examples/laravel.php
 ```
 

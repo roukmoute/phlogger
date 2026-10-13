@@ -28,6 +28,7 @@
       <li><a href="#psr">PSR-3 integration</a></li>
       <li><a href="#monolog">Integration with Monolog</a></li>
       <li><a href="#symfony">Symfony</a></li>
+      <li><a href="#symfony-default-logger">Default @logger</a></li>
       <li><a href="#laravel">Laravel</a></li>
       <li><a href="#lifecycle">Worker quota lifetime</a></li>
       <li><a href="#benchmarks">Benchmarks</a></li>
@@ -246,6 +247,7 @@ php examples/monolog.php</code></pre>
 
       <section id="symfony">
         <h2>Symfony</h2>
+        <h3>Additional fluent service</h3>
         <p>Register Phlogger as an additional service in <code>config/services.yaml</code>, then inject <code>FluentLogger</code> into your application services:</p>
         <pre><code>services:
     Phlogger\FluentLogger:
@@ -254,6 +256,20 @@ php examples/monolog.php</code></pre>
         <p>The existing PSR logger binding stays available. For a Monolog channel declared in your application, use <code>@monolog.logger.payments</code> as the backend instead. MonologBundle continues to configure handlers, processors and routing.</p>
         <p>The backend's level threshold is not discovered through PSR-3. Set <code>$minimumLevel</code> to your application's policy, or configure a factory with the <a href="#monolog">Monolog readiness filter</a> to skip deferred work at backend-disabled levels.</p>
         <p>The <a href="https://github.com/roukmoute/phlogger/blob/master/examples/symfony.php">runnable Symfony example</a> uses the real dependency injection container. A second job's warning is suppressed; a third job emits after an explicit reset. The <a href="https://github.com/roukmoute/phlogger/blob/master/docs/frameworks.md">integration guide</a> contains application configuration and channel recipes.</p>
+        <h3 id="symfony-default-logger">Make Phlogger the default @logger</h3>
+        <p>Use this alternative definition in <code>config/services.yaml</code> so <code>@logger</code>, autowired <code>LoggerInterface</code> and <code>FluentLogger</code> resolve to the same Phlogger instance:</p>
+        <pre><code>services:
+    Phlogger\FluentLogger:
+        decorates: logger
+        decoration_inner_name: phlogger.backend
+        arguments:
+            $backend: '@phlogger.backend'
+
+    Psr\Log\LoggerInterface: '@logger'</code></pre>
+        <p>Replace the additional-service definition above with this one. Symfony keeps the original logger behind <code>phlogger.backend</code>. Referencing <code>@logger</code> as the decorator's backend would create a circular dependency.</p>
+        <p>Existing consumers typed as <code>LoggerInterface</code> keep their PSR methods such as <code>info()</code>. Inject <code>FluentLogger</code> when using <code>atInfo()</code> and the fluent API. Monolog still manages handlers, processors and its lifecycle; explicitly injected named channels keep their own loggers.</p>
+        <p>The default debug minimum forwards every PSR level. Configure <code>$minimumLevel</code> deliberately if you want filtering across all default-logger consumers. Backend-specific consumers can inject <code>@phlogger.backend</code>.</p>
+        <p>The <a href="https://github.com/roukmoute/phlogger/blob/master/examples/symfony-default-logger.php">default logger example</a> compiles this service graph, autowires both types and writes PSR and fluent records through Monolog. Run <code>php examples/symfony-default-logger.php</code> from a development checkout.</p>
       </section>
 
       <section id="laravel">
@@ -278,14 +294,14 @@ $this-&gt;app-&gt;scoped(
         <h2>Choose the lifetime of worker quotas</h2>
         <p>Contextual clones share their parent's limiter state. A shared worker logger keeps quotas between jobs; a new instance or <code>resetRateLimits()</code> starts fresh quotas. A per-job reset makes a one-minute limit admit the first warning of every job.</p>
         <h3>Symfony</h3>
-        <p>Services are shared by default. To clear quotas when Symfony resets services, including Messenger's normal between-message reset, opt in with this tag:</p>
+        <p>Services are shared by default. To clear quotas when Symfony resets services, including Messenger's normal between-message reset, add this tag to the additional-service variant:</p>
         <pre><code>services:
     Phlogger\FluentLogger:
         arguments:
             $backend: '@logger'
         tags:
             - { name: kernel.reset, method: resetRateLimits }</code></pre>
-        <p>Keep the tag absent for worker-wide quotas. Disabling framework service resets also disables this reset boundary. In a custom sequential loop, call the method between jobs yourself.</p>
+        <p>For the default-logger decorator, add the same tag to its existing definition while retaining <code>$backend: '@phlogger.backend'</code>. Keep the tag absent for worker-wide quotas. Disabling framework service resets also disables this reset boundary. In a custom sequential loop, call the method between jobs yourself.</p>
         <h3>Laravel</h3>
         <p>A <code>scoped()</code> binding is renewed for each request or queue job, including Octane and queue workers. A <code>singleton()</code> binding retains worker-wide quotas. Resolve scoped consumers again in the next scope; a singleton that captures a scoped logger keeps the old instance and its state.</p>
         <div class="note"><p><strong>Separate quota and backend lifecycles.</strong> Resetting Phlogger does not clear Monolog buffers or Laravel shared context. Continue using the framework's normal backend lifecycle. Do not reset a shared logger family while concurrent work is using it.</p></div>

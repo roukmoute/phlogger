@@ -28,6 +28,7 @@
       <li><a href="#psr">Intégration PSR-3</a></li>
       <li><a href="#monolog">Intégration avec Monolog</a></li>
       <li><a href="#symfony">Symfony</a></li>
+      <li><a href="#symfony-default-logger">Phlogger comme @logger</a></li>
       <li><a href="#laravel">Laravel</a></li>
       <li><a href="#lifecycle">Durée de vie des quotas</a></li>
       <li><a href="#benchmarks">Benchmarks</a></li>
@@ -246,6 +247,7 @@ php examples/monolog.php</code></pre>
 
       <section id="symfony">
         <h2>Symfony</h2>
+        <h3>Service fluide supplémentaire</h3>
         <p>Déclarez Phlogger comme service supplémentaire dans <code>config/services.yaml</code>, puis injectez <code>FluentLogger</code> dans les services de votre application :</p>
         <pre><code>services:
     Phlogger\FluentLogger:
@@ -254,6 +256,20 @@ php examples/monolog.php</code></pre>
         <p>Le logger PSR existant reste disponible. Pour un canal Monolog déclaré dans votre application, utilisez plutôt <code>@monolog.logger.payments</code> comme backend. MonologBundle continue de configurer les handlers, processors et règles de routage.</p>
         <p>PSR-3 ne permet pas de découvrir le seuil du backend. Configurez <code>$minimumLevel</code> selon votre application ou utilisez une factory avec le <a href="#monolog">filtre de disponibilité Monolog</a> pour éviter les calculs différés aux niveaux rejetés par le backend.</p>
         <p>L'<a href="https://github.com/roukmoute/phlogger/blob/master/examples/symfony.php">exemple Symfony exécutable</a> utilise le vrai conteneur d'injection. Le deuxième job voit son avertissement supprimé ; le troisième peut en émettre un après une remise à zéro explicite. Le <a href="https://github.com/roukmoute/phlogger/blob/master/docs/frameworks.md">guide d'intégration en anglais</a> contient la configuration applicative et les recettes de canaux.</p>
+        <h3 id="symfony-default-logger">Faire de Phlogger le @logger par défaut</h3>
+        <p>Utilisez cette autre définition dans <code>config/services.yaml</code> pour que <code>@logger</code>, <code>LoggerInterface</code> injecté automatiquement et <code>FluentLogger</code> désignent la même instance Phlogger :</p>
+        <pre><code>services:
+    Phlogger\FluentLogger:
+        decorates: logger
+        decoration_inner_name: phlogger.backend
+        arguments:
+            $backend: '@phlogger.backend'
+
+    Psr\Log\LoggerInterface: '@logger'</code></pre>
+        <p>Remplacez la définition du service supplémentaire ci-dessus par celle-ci. Symfony conserve le logger d'origine derrière <code>phlogger.backend</code>. Utiliser <code>@logger</code> comme backend du décorateur créerait une dépendance circulaire.</p>
+        <p>Les consommateurs typés <code>LoggerInterface</code> gardent leurs méthodes PSR comme <code>info()</code>. Injectez <code>FluentLogger</code> pour utiliser <code>atInfo()</code> et l'API fluide. Monolog continue de gérer ses handlers, processors et son cycle de vie ; les canaux nommés injectés explicitement conservent leurs propres loggers.</p>
+        <p>Le minimum debug par défaut transmet tous les niveaux PSR. Configurez délibérément <code>$minimumLevel</code> si vous voulez filtrer tous les consommateurs du logger par défaut. Les consommateurs qui ont besoin des méthodes du backend peuvent injecter <code>@phlogger.backend</code>.</p>
+        <p>L'<a href="https://github.com/roukmoute/phlogger/blob/master/examples/symfony-default-logger.php">exemple du logger par défaut</a> compile cette configuration, injecte les deux types et transmet les logs PSR et fluides à Monolog. Exécutez <code>php examples/symfony-default-logger.php</code> depuis un clone de développement.</p>
       </section>
 
       <section id="laravel">
@@ -278,14 +294,14 @@ $this-&gt;app-&gt;scoped(
         <h2>Choisir la durée de vie des quotas dans un worker</h2>
         <p>Les clones contextuels partagent l'état du limiteur de leur parent. Un logger partagé dans un worker conserve ses quotas entre les jobs ; une nouvelle instance ou <code>resetRateLimits()</code> crée des quotas frais. Une remise à zéro par job laisse ainsi passer le premier avertissement de chaque job, même avec une limite d'une minute.</p>
         <h3>Symfony</h3>
-        <p>Les services sont partagés par défaut. Pour effacer les quotas lorsque Symfony réinitialise ses services, notamment entre les messages avec la configuration habituelle de Messenger, ajoutez explicitement ce tag :</p>
+        <p>Les services sont partagés par défaut. Pour effacer les quotas lorsque Symfony réinitialise ses services, notamment entre les messages avec la configuration habituelle de Messenger, ajoutez ce tag à la variante du service supplémentaire :</p>
         <pre><code>services:
     Phlogger\FluentLogger:
         arguments:
             $backend: '@logger'
         tags:
             - { name: kernel.reset, method: resetRateLimits }</code></pre>
-        <p>Omettez le tag pour des quotas conservés dans le worker. Désactiver la réinitialisation des services du framework supprime aussi cette remise à zéro. Dans une boucle séquentielle personnalisée, appelez vous-même la méthode entre les jobs.</p>
+        <p>Pour le décorateur du logger par défaut, ajoutez le même tag à sa définition existante en conservant <code>$backend: '@phlogger.backend'</code>. Omettez le tag pour des quotas conservés dans le worker. Désactiver la réinitialisation des services du framework supprime aussi cette remise à zéro. Dans une boucle séquentielle personnalisée, appelez vous-même la méthode entre les jobs.</p>
         <h3>Laravel</h3>
         <p>Une liaison <code>scoped()</code> est renouvelée à chaque requête ou job de queue, y compris avec Octane et les workers de queue. Une liaison <code>singleton()</code> conserve les quotas dans le worker. Résolvez à nouveau les consommateurs scoped au prochain scope ; un singleton qui capture un logger scoped conserve l'ancienne instance et son état.</p>
         <div class="note"><p><strong>Quotas et backend ont des cycles distincts.</strong> Réinitialiser Phlogger ne vide pas les buffers Monolog ni le contexte partagé Laravel. Conservez le cycle de vie habituel du backend géré par le framework. Ne réinitialisez pas une famille de loggers partagée pendant qu'un autre traitement concurrent l'utilise.</p></div>

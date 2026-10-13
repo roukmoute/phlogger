@@ -107,9 +107,11 @@ It writes three JSON records to stdout: an order, one rate-limited payment warni
 
 ## Symfony and Laravel
 
-Register `FluentLogger` as an additional service that wraps the framework's existing logger. Symfony can inject `@logger` or a named Monolog channel. Laravel can use a scoped binding around its PSR logger or a selected channel, retaining Laravel's context and log events.
+Register `FluentLogger` as an additional service that wraps the framework's existing logger. Symfony can inject `@logger` or a named Monolog channel, or decorate `logger` so Phlogger becomes the default PSR logger. Laravel can use a scoped binding around its PSR logger or a selected channel, retaining Laravel's context and log events.
 
 The [framework integration guide](docs/frameworks.md) contains application configuration, channel selection and worker lifecycle choices. Runnable [Symfony](examples/symfony.php) and [Laravel](examples/laravel.php) examples use real components and simulate sequential jobs without booting full application kernels.
+
+The alternative [Symfony default logger example](examples/symfony-default-logger.php) makes `@logger`, `LoggerInterface` and `FluentLogger` resolve to one Phlogger instance. It retains the original backend as the inner service to avoid circular resolution.
 
 Choose quota lifetime deliberately: a shared worker logger retains counters across jobs; an explicit reset or a fresh scoped instance starts new quotas. Contextual clones share their parent's limiter state. Registering the fluent service separately preserves the framework's existing PSR logger binding.
 
@@ -227,6 +229,7 @@ php examples/basic.php
 php examples/monolog.php
 php examples/monolog-introspection.php
 php examples/symfony.php
+php examples/symfony-default-logger.php
 php examples/laravel.php
 ```
 
