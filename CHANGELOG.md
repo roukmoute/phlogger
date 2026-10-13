@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — 2026-10-13
+
+- Add an executable Monolog 3 example with JSON output, PSR-3 interpolation, exception context and deferred computation filtered through the backend's `isHandling()` method.
+- Add integration tests against real Monolog handlers, processors, dynamic filtering and buffered delivery.
+- Run the Monolog example in CI and verify that production-only installation contains exactly `psr/log`.
+- Document the PSR-3 backend boundary and Monolog integration in the English Markdown documentation and both website languages.
+
+Monolog is a development dependency only. The production dependency set and public API are unchanged.
+
 ## 0.1.0 — 2026-10-13
 
 First public API release. Requires PHP 8.5+ and `psr/log` 3.x as the only production package dependency.
