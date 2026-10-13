@@ -2,7 +2,7 @@
 
 A fluent logging API for PHP.
 
-Phlogger adds readable log statements, deferred computation and per-statement rate limiting to any PSR-3 logger. It requires **PHP 8.5+** and has exactly one production package dependency: **`psr/log`**. Bring your existing backend; Phlogger does not write files or configure handlers.
+Phlogger adds readable log statements, deferred computation and per-statement rate limiting to any PSR-3 logger. It requires **PHP 8.3+** and has exactly one production package dependency: **`psr/log`**. Bring your existing backend; Phlogger does not write files or configure handlers.
 
 ```php
 use Phlogger\FluentLogger;
@@ -32,7 +32,7 @@ Install the package from [Packagist](https://packagist.org/packages/roukmoute/ph
 composer require roukmoute/phlogger
 ```
 
-Requires PHP 8.5 or later. Composer installs a tagged release and `psr/log`; no custom repository configuration is needed. Monolog remains an optional backend chosen by your application.
+Requires PHP 8.3 or later. Composer installs a tagged release and `psr/log`; no custom repository configuration is needed. Monolog remains an optional backend chosen by your application.
 
 ## Levels and PSR-3 compatibility
 
@@ -199,7 +199,7 @@ php examples/basic.php
 php examples/monolog.php
 ```
 
-Monolog, PHPUnit and PHPStan are development dependencies only. See [CONTRIBUTING.md](CONTRIBUTING.md) for the test and review workflow. The CI runs both examples and checks an isolated production-only installation containing exactly `psr/log`.
+Monolog, PHPUnit and PHPStan are development dependencies only. See [CONTRIBUTING.md](CONTRIBUTING.md) for the test and review workflow. The CI runs tests, static analysis and both examples on PHP 8.3, 8.4 and 8.5, and checks isolated production-only installations containing exactly `psr/log`. Static analysis also targets the PHP 8.3 language level.
 
 ## License
 

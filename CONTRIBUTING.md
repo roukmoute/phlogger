@@ -1,6 +1,6 @@
 # Contributing
 
-Use PHP 8.5 or later. Install development dependencies with `composer install`, then run:
+Use PHP 8.3 or later. Install development dependencies with `composer install`, then run:
 
 ```sh
 composer validate --strict
@@ -10,6 +10,8 @@ php examples/monolog.php
 ```
 
 Tests must cover observable behavior. Use an injected monotonic clock for time-based tests instead of sleeping. Verify that rejected statements avoid deferred computation and that fluent modifiers cannot contaminate reusable entries.
+
+Keep runtime code compatible with PHP 8.3. CI runs the test suite, examples and production-only installation checks on PHP 8.3, 8.4 and 8.5. PHPStan targets PHP 8.3 even when executed with a newer runtime.
 
 Keep `psr/log` as the only production package dependency. Development tools belong in `require-dev`. Preserve PSR-3 message templates and arbitrary context values when using the standard logger methods.
 
