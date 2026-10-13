@@ -27,6 +27,10 @@
       <li><a href="#rate-limits">Limitation des logs</a></li>
       <li><a href="#psr">Intégration PSR-3</a></li>
       <li><a href="#monolog">Intégration avec Monolog</a></li>
+      <li><a href="#symfony">Symfony</a></li>
+      <li><a href="#laravel">Laravel</a></li>
+      <li><a href="#lifecycle">Durée de vie des quotas</a></li>
+      <li><a href="#benchmarks">Benchmarks</a></li>
       <li><a href="#reference">Référence de l'API</a></li>
     </ul></nav></aside>
     <main id="main">
@@ -238,6 +242,64 @@ $requestLogger-&gt;atDebug()
         <pre><code>composer install
 php examples/monolog.php</code></pre>
         <p>Consultez le <a href="https://github.com/Seldaek/monolog/blob/main/doc/01-usage.md">guide d'utilisation de Monolog</a> pour configurer les handlers et processors.</p>
+      </section>
+
+      <section id="symfony">
+        <h2>Symfony</h2>
+        <p>Déclarez Phlogger comme service supplémentaire dans <code>config/services.yaml</code>, puis injectez <code>FluentLogger</code> dans les services de votre application :</p>
+        <pre><code>services:
+    Phlogger\FluentLogger:
+        arguments:
+            $backend: '@logger'</code></pre>
+        <p>Le logger PSR existant reste disponible. Pour un canal Monolog déclaré dans votre application, utilisez plutôt <code>@monolog.logger.payments</code> comme backend. MonologBundle continue de configurer les handlers, processors et règles de routage.</p>
+        <p>PSR-3 ne permet pas de découvrir le seuil du backend. Configurez <code>$minimumLevel</code> selon votre application ou utilisez une factory avec le <a href="#monolog">filtre de disponibilité Monolog</a> pour éviter les calculs différés aux niveaux rejetés par le backend.</p>
+        <p>L'<a href="https://github.com/roukmoute/phlogger/blob/master/examples/symfony.php">exemple Symfony exécutable</a> utilise le vrai conteneur d'injection. Le deuxième job voit son avertissement supprimé ; le troisième peut en émettre un après une remise à zéro explicite. Le <a href="https://github.com/roukmoute/phlogger/blob/master/docs/frameworks.md">guide d'intégration en anglais</a> contient la configuration applicative et les recettes de canaux.</p>
+      </section>
+
+      <section id="laravel">
+        <h2>Laravel</h2>
+        <p>Ajoutez une liaison scoped dans <code>AppServiceProvider::register()</code>, puis injectez <code>FluentLogger</code> dans vos contrôleurs, services ou jobs :</p>
+        <pre><code>use Illuminate\Contracts\Foundation\Application;
+use Phlogger\FluentLogger;
+use Psr\Log\LoggerInterface;
+
+$this-&gt;app-&gt;scoped(
+    FluentLogger::class,
+    static fn (Application $app): FluentLogger =&gt; new FluentLogger(
+        $app-&gt;make(LoggerInterface::class),
+    ),
+);</code></pre>
+        <p>Cette configuration conserve le gestionnaire de logs Laravel, son contexte partagé et ses événements. Pour un canal configuré, utilisez <code>$app-&gt;make('log')-&gt;channel('payments')</code> comme backend ; pour une stack, utilisez <code>$app-&gt;make('log')-&gt;stack(['single', 'slack'])</code>. Continuez à écrire via le logger Laravel plutôt que son backend Monolog extrait.</p>
+        <p>La factory laisse le minimum de Phlogger à debug. Configurez <code>minimumLevel</code> si Phlogger doit rejeter les calculs différés plus tôt. Gardez la liaison fluide distincte de <code>LoggerInterface</code> pour préserver les logs existants et éviter une résolution circulaire.</p>
+        <p>L'<a href="https://github.com/roukmoute/phlogger/blob/master/examples/laravel.php">exemple Laravel exécutable</a> utilise de vrais composants et renouvelle explicitement les scopes entre deux jobs simulés. Il ne démarre pas une application Laravel complète ni un serveur Octane.</p>
+      </section>
+
+      <section id="lifecycle">
+        <h2>Choisir la durée de vie des quotas dans un worker</h2>
+        <p>Les clones contextuels partagent l'état du limiteur de leur parent. Un logger partagé dans un worker conserve ses quotas entre les jobs ; une nouvelle instance ou <code>resetRateLimits()</code> crée des quotas frais. Une remise à zéro par job laisse ainsi passer le premier avertissement de chaque job, même avec une limite d'une minute.</p>
+        <h3>Symfony</h3>
+        <p>Les services sont partagés par défaut. Pour effacer les quotas lorsque Symfony réinitialise ses services, notamment entre les messages avec la configuration habituelle de Messenger, ajoutez explicitement ce tag :</p>
+        <pre><code>services:
+    Phlogger\FluentLogger:
+        arguments:
+            $backend: '@logger'
+        tags:
+            - { name: kernel.reset, method: resetRateLimits }</code></pre>
+        <p>Omettez le tag pour des quotas conservés dans le worker. Désactiver la réinitialisation des services du framework supprime aussi cette remise à zéro. Dans une boucle séquentielle personnalisée, appelez vous-même la méthode entre les jobs.</p>
+        <h3>Laravel</h3>
+        <p>Une liaison <code>scoped()</code> est renouvelée à chaque requête ou job de queue, y compris avec Octane et les workers de queue. Une liaison <code>singleton()</code> conserve les quotas dans le worker. Résolvez à nouveau les consommateurs scoped au prochain scope ; un singleton qui capture un logger scoped conserve l'ancienne instance et son état.</p>
+        <div class="note"><p><strong>Quotas et backend ont des cycles distincts.</strong> Réinitialiser Phlogger ne vide pas les buffers Monolog ni le contexte partagé Laravel. Conservez le cycle de vie habituel du backend géré par le framework. Ne réinitialisez pas une famille de loggers partagée pendant qu'un autre traitement concurrent l'utilise.</p></div>
+        <p>Les tests utilisent les vrais composants Symfony et Illuminate pour vérifier l'injection, les canaux, le contexte et les événements Laravel, ainsi que les quotas partagés ou renouvelés. Ils ne démarrent pas des kernels ou workers complets. Les composants des frameworks restent des dépendances de développement ; <code>psr/log</code> reste la seule dépendance de production de Phlogger.</p>
+      </section>
+
+      <section id="benchmarks">
+        <h2>Benchmarks</h2>
+        <p>Mesurez le coût de l'API depuis un clone de développement, sans bibliothèque de benchmark :</p>
+        <pre><code>composer install
+composer benchmark -- --iterations=100000 --samples=5
+php benchmarks/run.php --iterations=100000 --samples=5 --json</code></pre>
+        <p>Le script compare les appels PSR directs ou filtrés, les instructions fluides acceptées ou rejetées, les valeurs différées, les entrées réutilisées et les quotas. Il utilise <code>NullLogger</code>, un échauffement et plusieurs mesures, sans écriture de fichier ni accès réseau. La sortie JSON inclut les mesures brutes et la configuration du runtime.</p>
+        <p>Les temps correspondent à chaque tentative de log. Le pic de mémoire temporaire ne compte pas les allocations ; les filtres manuels offrent moins de fonctionnalités que les quotas partagés par clé. Ces observations ne prédisent pas le débit de l'application et n'imposent aucun seuil de temps dans la CI. Consultez le <a href="https://github.com/roukmoute/phlogger/blob/master/benchmarks/README.md">guide du benchmark en anglais</a> pour connaître les limites de comparaison.</p>
       </section>
 
       <section id="reference">

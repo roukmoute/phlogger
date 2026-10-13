@@ -27,6 +27,10 @@
       <li><a href="#rate-limits">Rate limiting</a></li>
       <li><a href="#psr">PSR-3 integration</a></li>
       <li><a href="#monolog">Integration with Monolog</a></li>
+      <li><a href="#symfony">Symfony</a></li>
+      <li><a href="#laravel">Laravel</a></li>
+      <li><a href="#lifecycle">Worker quota lifetime</a></li>
+      <li><a href="#benchmarks">Benchmarks</a></li>
       <li><a href="#reference">API reference</a></li>
     </ul></nav></aside>
     <main id="main">
@@ -238,6 +242,64 @@ $requestLogger-&gt;atDebug()
         <pre><code>composer install
 php examples/monolog.php</code></pre>
         <p>Read the <a href="https://github.com/Seldaek/monolog/blob/main/doc/01-usage.md">Monolog usage guide</a> for configuring handlers and processors.</p>
+      </section>
+
+      <section id="symfony">
+        <h2>Symfony</h2>
+        <p>Register Phlogger as an additional service in <code>config/services.yaml</code>, then inject <code>FluentLogger</code> into your application services:</p>
+        <pre><code>services:
+    Phlogger\FluentLogger:
+        arguments:
+            $backend: '@logger'</code></pre>
+        <p>The existing PSR logger binding stays available. For a Monolog channel declared in your application, use <code>@monolog.logger.payments</code> as the backend instead. MonologBundle continues to configure handlers, processors and routing.</p>
+        <p>The backend's level threshold is not discovered through PSR-3. Set <code>$minimumLevel</code> to your application's policy, or configure a factory with the <a href="#monolog">Monolog readiness filter</a> to skip deferred work at backend-disabled levels.</p>
+        <p>The <a href="https://github.com/roukmoute/phlogger/blob/master/examples/symfony.php">runnable Symfony example</a> uses the real dependency injection container. A second job's warning is suppressed; a third job emits after an explicit reset. The <a href="https://github.com/roukmoute/phlogger/blob/master/docs/frameworks.md">integration guide</a> contains application configuration and channel recipes.</p>
+      </section>
+
+      <section id="laravel">
+        <h2>Laravel</h2>
+        <p>Add a scoped binding in <code>AppServiceProvider::register()</code>, then inject <code>FluentLogger</code> into your controllers, services or jobs:</p>
+        <pre><code>use Illuminate\Contracts\Foundation\Application;
+use Phlogger\FluentLogger;
+use Psr\Log\LoggerInterface;
+
+$this-&gt;app-&gt;scoped(
+    FluentLogger::class,
+    static fn (Application $app): FluentLogger =&gt; new FluentLogger(
+        $app-&gt;make(LoggerInterface::class),
+    ),
+);</code></pre>
+        <p>This retains Laravel's logging manager, shared context and log events. For a configured channel, use <code>$app-&gt;make('log')-&gt;channel('payments')</code> as the backend; for a stack, use <code>$app-&gt;make('log')-&gt;stack(['single', 'slack'])</code>. Continue writing through the Laravel logger rather than its unwrapped Monolog backend.</p>
+        <p>The factory defaults to Phlogger's debug minimum. Set <code>minimumLevel</code> in the factory if you need Phlogger to reject lazy computation early. Keep the fluent binding separate from <code>LoggerInterface</code> to preserve existing logging and avoid circular resolution.</p>
+        <p>The <a href="https://github.com/roukmoute/phlogger/blob/master/examples/laravel.php">runnable Laravel example</a> uses real components and explicitly renews scopes between two simulated jobs. It does not boot a full Laravel application or Octane server.</p>
+      </section>
+
+      <section id="lifecycle">
+        <h2>Choose the lifetime of worker quotas</h2>
+        <p>Contextual clones share their parent's limiter state. A shared worker logger keeps quotas between jobs; a new instance or <code>resetRateLimits()</code> starts fresh quotas. A per-job reset makes a one-minute limit admit the first warning of every job.</p>
+        <h3>Symfony</h3>
+        <p>Services are shared by default. To clear quotas when Symfony resets services, including Messenger's normal between-message reset, opt in with this tag:</p>
+        <pre><code>services:
+    Phlogger\FluentLogger:
+        arguments:
+            $backend: '@logger'
+        tags:
+            - { name: kernel.reset, method: resetRateLimits }</code></pre>
+        <p>Keep the tag absent for worker-wide quotas. Disabling framework service resets also disables this reset boundary. In a custom sequential loop, call the method between jobs yourself.</p>
+        <h3>Laravel</h3>
+        <p>A <code>scoped()</code> binding is renewed for each request or queue job, including Octane and queue workers. A <code>singleton()</code> binding retains worker-wide quotas. Resolve scoped consumers again in the next scope; a singleton that captures a scoped logger keeps the old instance and its state.</p>
+        <div class="note"><p><strong>Separate quota and backend lifecycles.</strong> Resetting Phlogger does not clear Monolog buffers or Laravel shared context. Continue using the framework's normal backend lifecycle. Do not reset a shared logger family while concurrent work is using it.</p></div>
+        <p>Tests use real Symfony and Illuminate components to verify injection, channels, Laravel context and events, and shared versus renewed quotas. They do not boot full framework kernels or workers. Framework components are development dependencies only; Phlogger's sole production package dependency remains <code>psr/log</code>.</p>
+      </section>
+
+      <section id="benchmarks">
+        <h2>Benchmarks</h2>
+        <p>Measure API overhead from a development checkout without a benchmark package:</p>
+        <pre><code>composer install
+composer benchmark -- --iterations=100000 --samples=5
+php benchmarks/run.php --iterations=100000 --samples=5 --json</code></pre>
+        <p>The runner compares direct and guarded PSR calls, enabled and disabled fluent statements, deferred values, reused entries and rate limits. It uses <code>NullLogger</code>, warm-up and repeated samples, excluding file and network I/O. JSON output includes raw measurements and the runtime configuration.</p>
+        <p>Times are per attempted statement. Peak temporary memory is not an allocation count, and manual guards have fewer capabilities than shared keyed quotas. These observations do not predict application throughput or impose CI timing thresholds. See the <a href="https://github.com/roukmoute/phlogger/blob/master/benchmarks/README.md">benchmark guide</a> for comparison limits.</p>
       </section>
 
       <section id="reference">

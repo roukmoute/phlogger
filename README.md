@@ -105,6 +105,14 @@ php examples/monolog.php
 
 It writes three JSON records to stdout: an order, one rate-limited payment warning, and a completion message. Debug callbacks remain unevaluated. Applications using long-lived workers own Monolog's `reset()`/`close()` lifecycle; Phlogger exposes `resetRateLimits()` separately.
 
+## Symfony and Laravel
+
+Register `FluentLogger` as an additional service that wraps the framework's existing logger. Symfony can inject `@logger` or a named Monolog channel. Laravel can use a scoped binding around its PSR logger or a selected channel, retaining Laravel's context and log events.
+
+The [framework integration guide](docs/frameworks.md) contains application configuration, channel selection and worker lifecycle choices. Runnable [Symfony](examples/symfony.php) and [Laravel](examples/laravel.php) examples use real components and simulate sequential jobs without booting full application kernels.
+
+Choose quota lifetime deliberately: a shared worker logger retains counters across jobs; an explicit reset or a fresh scoped instance starts new quotas. Contextual clones share their parent's limiter state. Registering the fluent service separately preserves the framework's existing PSR logger binding.
+
 ## Context and exceptions
 
 ```php
@@ -199,6 +207,16 @@ The documentation website is available in [English](https://roukmoute.github.io/
 
 The Pages workflow deploys on pushes to `master` and can also be started manually. To configure a fork, enable **Settings → Pages → Source → GitHub Actions**. Private repositories need a GitHub plan that supports Pages; published Pages content may be public depending on account settings. No build dependencies are needed.
 
+## Benchmarks
+
+Run the dependency-free API benchmark from a development checkout:
+
+```sh
+composer benchmark -- --iterations=100000 --samples=5
+```
+
+It compares direct PSR calls, guarded calls, fluent enabled and disabled statements, deferred values and rate limits with a `NullLogger` backend. Warm-up and repeated samples separate API overhead from file or network I/O. The [benchmark guide](benchmarks/README.md) explains the scenarios, machine-readable output and measurement limits. Timings are observations on the current machine, not CI performance thresholds.
+
 ## Development
 
 ```sh
@@ -207,9 +225,12 @@ composer validate --strict
 composer check
 php examples/basic.php
 php examples/monolog.php
+php examples/monolog-introspection.php
+php examples/symfony.php
+php examples/laravel.php
 ```
 
-Monolog, PHPUnit and PHPStan are development dependencies only. See [CONTRIBUTING.md](CONTRIBUTING.md) for the test and review workflow. The CI runs tests, static analysis and both examples on PHP 8.3, 8.4 and 8.5, and checks isolated production-only installations containing exactly `psr/log`. Static analysis also targets the PHP 8.3 language level.
+Monolog, framework components, PHPUnit and PHPStan are development dependencies only. See [CONTRIBUTING.md](CONTRIBUTING.md) for the test and review workflow. CI runs tests, static analysis, all examples and a benchmark smoke check on PHP 8.3, 8.4 and 8.5, with Symfony DependencyInjection 7.4 / 8.x and Illuminate 12.x / 13.x compatibility sets. Isolated production-only installations contain exactly `psr/log`. Static analysis also targets the PHP 8.3 language level.
 
 ## License
 
