@@ -3,7 +3,13 @@
     "description": "A fluent logging API for PHP.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://roukmoute.github.io/phlogger/",
     "keywords": ["logging", "fluent", "psr-3", "lazy"],
+    "support": {
+        "issues": "https://github.com/roukmoute/phlogger/issues",
+        "source": "https://github.com/roukmoute/phlogger",
+        "docs": "https://roukmoute.github.io/phlogger/en/"
+    },
     "require": {
         "php": "^8.5",
         "psr/log": "^3.0"
