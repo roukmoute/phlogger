@@ -1,0 +1,29 @@
+{
+    "name": "roukmoute/phlogger",
+    "description": "A fluent logging API for PHP, inspired by Google's Flogger.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["logging", "fluent", "psr-3", "flogger", "lazy"],
+    "require": {
+        "php": "^8.5",
+        "psr/log": "^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.5",
+        "phpstan/phpstan": "^2.1"
+    },
+    "autoload": {
+        "psr-4": {"Phlogger\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Phlogger\\Tests\\": "tests/"}
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse --no-progress",
+        "check": ["@test", "@analyse"]
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
