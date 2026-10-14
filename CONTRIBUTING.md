@@ -1,5 +1,7 @@
 # Contributing
 
+**English** · [Français](CONTRIBUTING.fr.md)
+
 Use PHP 8.3 or later. Install development dependencies with `composer install`, then run:
 
 ```sh
@@ -25,6 +27,8 @@ Symfony and Illuminate components are development dependencies for container, ch
 
 Run `composer benchmark -- --iterations=100000 --samples=5` when investigating API costs. See [benchmarks/README.md](benchmarks/README.md) for comparable workloads and measurement limits. CI smoke-checks the runner's execution without timing assertions.
 
-Write source comments, commit messages and all Markdown documentation in English. Update both language editions of the HTML documentation when changing the public API. The site is plain HTML and CSS under `docs/` and requires no package manager or build step.
+Write source comments and commit messages in English. Maintain every project Markdown document in English and French, with reciprocal language links and identical code examples. English remains the default. Update both HTML editions when changing the public API, and retain matching section IDs so language changes keep the reader's context. The site is plain HTML, CSS and local JavaScript under `docs/`; serving it requires no package manager or build step.
+
+Run `python tools/check_documentation.py` and `node tests/documentation_navigation.cjs` to check paired editions, code examples, anchors, metadata and language navigation before publication. These checks use only the Python and Node.js standard libraries and run in CI and before Pages deployment.
 
 Open a pull request with a concrete description of the behavior change and its validation. The existing MIT license applies to contributions.

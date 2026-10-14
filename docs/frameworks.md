@@ -1,5 +1,7 @@
 # Symfony and Laravel integration
 
+**English** · [Français](frameworks.fr.md)
+
 Phlogger wraps the framework's existing PSR-3 logger. Install `roukmoute/phlogger` in your application; no Phlogger bundle or service-provider package is required. Keep framework dependencies in the application. Phlogger itself still requires only `psr/log` as a production package dependency.
 
 Register `FluentLogger` as an additional service, or use Symfony service decoration to make it the default logger. Decoration must reference the original inner service rather than the logger it replaces, which would create a circular dependency. Laravel's recipe below registers an additional scoped service.

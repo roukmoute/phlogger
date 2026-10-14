@@ -1,5 +1,7 @@
 # Benchmarks
 
+**English** · [Français](README.fr.md)
+
 These standalone microbenchmarks measure Phlogger's API overhead without disk, network, formatters or processors. Every case uses `Psr\Log\NullLogger`, and the runner needs no benchmark package. PHP 8.3 or later and the project's Composer autoloader are required; a production-only dependency installation is sufficient.
 
 From the repository root:

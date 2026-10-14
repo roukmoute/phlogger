@@ -1,5 +1,7 @@
 # Phlogger
 
+**English** · [Français](README.fr.md)
+
 A fluent logging API for PHP.
 
 Phlogger adds readable log statements, deferred computation and per-statement rate limiting to any PSR-3 logger. It requires **PHP 8.3+** and has exactly one production package dependency: **`psr/log`**. Bring your existing backend; Phlogger does not write files or configure handlers.
@@ -205,9 +207,9 @@ State is shared by contextual clones of one logger and is local to that logger f
 
 ## Documentation website
 
-The documentation website is available in [English](https://roukmoute.github.io/phlogger/en/) and [French](https://roukmoute.github.io/phlogger/fr/). Its static source is under `docs/`. All Markdown documentation in the repository is in English.
+The documentation website is available in [English](https://roukmoute.github.io/phlogger/en/) and [French](https://roukmoute.github.io/phlogger/fr/). Its static source is under `docs/`. The language switch keeps the current section and URL parameters. Every Markdown document in the repository also offers both languages through reciprocal links.
 
-The Pages workflow deploys on pushes to `master` and can also be started manually. To configure a fork, enable **Settings → Pages → Source → GitHub Actions**. Private repositories need a GitHub plan that supports Pages; published Pages content may be public depending on account settings. No build dependencies are needed.
+The Pages workflow deploys on pushes to `master` and can also be started manually. To configure a fork, enable **Settings → Pages → Source → GitHub Actions**. Private repositories need a GitHub plan that supports Pages; published Pages content may be public depending on account settings. No build dependencies are needed to serve the site.
 
 ## Benchmarks
 

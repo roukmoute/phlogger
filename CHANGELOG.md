@@ -1,5 +1,15 @@
 # Changelog
 
+**English** · [Français](CHANGELOG.fr.md)
+
+## 0.1.7 — 2026-10-14
+
+- Publish complete French editions of the README, changelog, contribution guide, benchmark guide and Symfony/Laravel integration guide, with reciprocal English links.
+- Display an explicit language choice in both website editions, retain the current section and URL parameters when switching languages, and link to Markdown guides in the reading language.
+- Add canonical URLs and language metadata, and check anchors, paired editions and identical code examples.
+
+Runtime code, the public API and production dependencies are unchanged.
+
 ## 0.1.6 — 2026-10-13
 
 - Add an alternative Symfony recipe that decorates `logger`, making `@logger`, PSR interface autowiring and concrete `FluentLogger` injection resolve to the same Phlogger instance.
