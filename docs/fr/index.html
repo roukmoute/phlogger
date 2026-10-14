@@ -6,7 +6,11 @@
   <meta name="description" content="Documentation Phlogger : API de logging fluide pour PHP 8.3+, valeurs différées, contexte structuré, intégration PSR-3 et limitation des logs.">
   <title>Phlogger — Documentation en français</title>
   <link rel="stylesheet" href="../assets/style.css">
-  <link rel="alternate" hreflang="en" href="../en/index.html">
+  <link rel="canonical" href="https://roukmoute.github.io/phlogger/fr/">
+  <link rel="alternate" hreflang="en" href="https://roukmoute.github.io/phlogger/en/">
+  <link rel="alternate" hreflang="fr" href="https://roukmoute.github.io/phlogger/fr/">
+  <link rel="alternate" hreflang="x-default" href="https://roukmoute.github.io/phlogger/">
+  <script src="../assets/navigation.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au contenu</a>
@@ -14,7 +18,7 @@
     <a class="brand" href="../index.html"><span class="brand-mark">ph</span>logger</a>
     <nav class="toplinks" aria-label="Projet et langue">
       <a href="https://github.com/roukmoute/phlogger">GitHub</a>
-      <div class="languages"><a href="../en/index.html" hreflang="en" lang="en">EN</a><span aria-current="page">FR</span></div>
+      <div class="languages"><a href="../en/index.html" hreflang="en" lang="en" data-language-switch>English</a><span aria-current="page" lang="fr">Français</span></div>
     </nav>
   </div></header>
   <div class="layout">
@@ -35,7 +39,7 @@
       <li><a href="#reference">Référence de l'API</a></li>
     </ul></nav></aside>
     <main id="main">
-      <p class="eyebrow" lang="en">A Fluent Logging API for PHP</p>
+      <p class="eyebrow">Une API de logging fluide pour PHP</p>
       <h1>Des logs qui expriment votre intention.</h1>
       <p class="lead">Choisissez un niveau, ajoutez du contexte structuré et décidez quand écrire. Phlogger fournit une API de logging fluide pour PHP 8.3+ et le logger PSR-3 que vous utilisez déjà.</p>
       <div class="badges"><span class="badge">PHP 8.3+</span><span class="badge">Seule dépendance d'exécution : psr/log</span><span class="badge">Builders immuables</span></div>
@@ -255,7 +259,7 @@ php examples/monolog.php</code></pre>
             $backend: '@logger'</code></pre>
         <p>Le logger PSR existant reste disponible. Pour un canal Monolog déclaré dans votre application, utilisez plutôt <code>@monolog.logger.payments</code> comme backend. MonologBundle continue de configurer les handlers, processors et règles de routage.</p>
         <p>PSR-3 ne permet pas de découvrir le seuil du backend. Configurez <code>$minimumLevel</code> selon votre application ou utilisez une factory avec le <a href="#monolog">filtre de disponibilité Monolog</a> pour éviter les calculs différés aux niveaux rejetés par le backend.</p>
-        <p>L'<a href="https://github.com/roukmoute/phlogger/blob/master/examples/symfony.php">exemple Symfony exécutable</a> utilise le vrai conteneur d'injection. Le deuxième job voit son avertissement supprimé ; le troisième peut en émettre un après une remise à zéro explicite. Le <a href="https://github.com/roukmoute/phlogger/blob/master/docs/frameworks.md">guide d'intégration en anglais</a> contient la configuration applicative et les recettes de canaux.</p>
+        <p>L'<a href="https://github.com/roukmoute/phlogger/blob/master/examples/symfony.php">exemple Symfony exécutable</a> utilise le vrai conteneur d'injection. Le deuxième job voit son avertissement supprimé ; le troisième peut en émettre un après une remise à zéro explicite. Le <a href="https://github.com/roukmoute/phlogger/blob/master/docs/frameworks.fr.md">guide d'intégration en français</a> contient la configuration applicative et les recettes de canaux.</p>
         <h3 id="symfony-default-logger">Faire de Phlogger le @logger par défaut</h3>
         <p>Utilisez cette autre définition dans <code>config/services.yaml</code> pour que <code>@logger</code>, <code>LoggerInterface</code> injecté automatiquement et <code>FluentLogger</code> désignent la même instance Phlogger :</p>
         <pre><code>services:
@@ -315,7 +319,7 @@ $this-&gt;app-&gt;scoped(
 composer benchmark -- --iterations=100000 --samples=5
 php benchmarks/run.php --iterations=100000 --samples=5 --json</code></pre>
         <p>Le script compare les appels PSR directs ou filtrés, les instructions fluides acceptées ou rejetées, les valeurs différées, les entrées réutilisées et les quotas. Il utilise <code>NullLogger</code>, un échauffement et plusieurs mesures, sans écriture de fichier ni accès réseau. La sortie JSON inclut les mesures brutes et la configuration du runtime.</p>
-        <p>Les temps correspondent à chaque tentative de log. Le pic de mémoire temporaire ne compte pas les allocations ; les filtres manuels offrent moins de fonctionnalités que les quotas partagés par clé. Ces observations ne prédisent pas le débit de l'application et n'imposent aucun seuil de temps dans la CI. Consultez le <a href="https://github.com/roukmoute/phlogger/blob/master/benchmarks/README.md">guide du benchmark en anglais</a> pour connaître les limites de comparaison.</p>
+        <p>Les temps correspondent à chaque tentative de log. Le pic de mémoire temporaire ne compte pas les allocations ; les filtres manuels offrent moins de fonctionnalités que les quotas partagés par clé. Ces observations ne prédisent pas le débit de l'application et n'imposent aucun seuil de temps dans la CI. Consultez le <a href="https://github.com/roukmoute/phlogger/blob/master/benchmarks/README.fr.md">guide du benchmark en français</a> pour connaître les limites de comparaison.</p>
       </section>
 
       <section id="reference">
@@ -341,6 +345,6 @@ php benchmarks/run.php --iterations=100000 --samples=5 --json</code></pre>
       </section>
     </main>
   </div>
-  <footer><div class="footer-inner"><p lang="en">Phlogger · A Fluent Logging API for PHP</p><a href="../en/index.html" hreflang="en" lang="en">Documentation in English</a></div></footer>
+  <footer><div class="footer-inner"><p>Phlogger · Une API de logging fluide pour PHP</p><a href="../en/index.html" hreflang="en" lang="en" data-language-switch>Documentation in English</a></div></footer>
 </body>
 </html>

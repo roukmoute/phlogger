@@ -5,6 +5,12 @@ on:
     branches: [master]
     paths:
       - docs/**
+      - README*.md
+      - CHANGELOG*.md
+      - CONTRIBUTING*.md
+      - benchmarks/README*.md
+      - tools/check_documentation.py
+      - tests/documentation_navigation.cjs
       - .github/workflows/pages.yml
   workflow_dispatch:
 
@@ -22,6 +28,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Check authored documentation and language navigation
+        run: |
+          python3 tools/check_documentation.py
+          node tests/documentation_navigation.cjs
       - name: Upload documentation
         uses: actions/upload-pages-artifact@v3
         with:

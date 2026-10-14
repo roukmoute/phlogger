@@ -9,3 +9,5 @@
 /phpunit.xml.dist export-ignore
 /phpstan.neon export-ignore
 /CONTRIBUTING.md export-ignore
+/CONTRIBUTING.fr.md export-ignore
+/tools export-ignore

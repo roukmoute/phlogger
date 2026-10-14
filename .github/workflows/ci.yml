@@ -9,6 +9,14 @@ permissions:
   contents: read
 
 jobs:
+  documentation:
+    name: Documentation languages and navigation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/check_documentation.py
+      - run: node tests/documentation_navigation.cjs
+
   quality:
     name: Quality (PHP ${{ matrix.php }}, Symfony ${{ matrix.symfony }}, Illuminate ${{ matrix.illuminate }})
     runs-on: ubuntu-latest

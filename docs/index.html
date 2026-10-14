@@ -6,8 +6,11 @@
   <meta name="description" content="Phlogger: a fluent logging API for PHP 8.3+, with PSR-3 integration, lazy values and per-call-site rate limiting.">
   <title>Phlogger — A Fluent Logging API for PHP</title>
   <link rel="stylesheet" href="assets/style.css">
-  <link rel="alternate" hreflang="en" href="en/index.html">
-  <link rel="alternate" hreflang="fr" href="fr/index.html">
+  <link rel="canonical" href="https://roukmoute.github.io/phlogger/">
+  <link rel="alternate" hreflang="en" href="https://roukmoute.github.io/phlogger/en/">
+  <link rel="alternate" hreflang="fr" href="https://roukmoute.github.io/phlogger/fr/">
+  <link rel="alternate" hreflang="x-default" href="https://roukmoute.github.io/phlogger/">
+  <script src="assets/navigation.js" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -22,14 +25,14 @@
     <p class="lead">Choose a level. Add context. Control when to log.</p>
     <p class="lead" lang="fr">Choisissez un niveau. Ajoutez du contexte. Contrôlez quand écrire.</p>
     <div class="language-cards">
-      <a class="language-card" href="en/index.html" hreflang="en"><strong>English <span aria-hidden="true">→</span></strong><span>Read the documentation</span></a>
-      <a class="language-card" href="fr/index.html" hreflang="fr" lang="fr"><strong>Français <span aria-hidden="true">→</span></strong><span>Lire la documentation</span></a>
+      <a class="language-card" href="en/index.html" hreflang="en" lang="en" data-language-switch><strong>English <span aria-hidden="true">→</span></strong><span>Read the documentation</span></a>
+      <a class="language-card" href="fr/index.html" hreflang="fr" lang="fr" data-language-switch><strong>Français <span aria-hidden="true">→</span></strong><span>Lire la documentation</span></a>
     </div>
     <pre><code>$logger-&gt;atWarning()
     -&gt;withCause($exception)
     -&gt;atMostEvery(30)
     -&gt;log('Payment failed for order {id}', ['id' =&gt; $orderId]);</code></pre>
   </main>
-  <footer><div class="footer-inner"><p>Phlogger · A Fluent Logging API for PHP</p><a href="en/index.html">Documentation</a></div></footer>
+  <footer><div class="footer-inner"><p>Phlogger · A Fluent Logging API for PHP</p><a href="en/index.html" hreflang="en" lang="en" data-language-switch>Documentation in English</a></div></footer>
 </body>
 </html>
